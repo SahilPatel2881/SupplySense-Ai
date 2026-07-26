@@ -75,13 +75,13 @@ except ImportError:
     pass
 
 MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'supplysense_db')
-MONGO_HOST = os.getenv('MONGO_HOST', 'mongodb+srv://sahilpatel3a_db_user:zhN1R7NxyD7h167T@supplysense-db.hgcsu0j.mongodb.net/?appName=supplysense-db')
+MONGO_HOST = os.getenv('MONGO_HOST', 'mongodb+srv://sahilpatel3a_db_user:sahilpatel3a_db_user@supplysense-db.hgcsu0j.mongodb.net/supplysense_db?retryWrites=true&w=majority&appName=supplysense-db')
 
 try:
     if 'default' not in mongoengine.connection._connections:
-        mongoengine.connect(db=MONGO_DB_NAME, host=MONGO_HOST, serverSelectionTimeoutMS=3000)
+        mongoengine.connect(db=MONGO_DB_NAME, host=MONGO_HOST, serverSelectionTimeoutMS=5000)
         mongoengine.connection.get_connection().admin.command('ping')
-        print(f"[*] MongoEngine connected successfully to target database: {MONGO_DB_NAME}")
+        print(f"[*] MongoEngine connected successfully to MongoDB Atlas: {MONGO_DB_NAME}")
 except Exception as primary_err:
     print(f"[!] MongoEngine primary host connection warning ({primary_err}). Falling back to local MongoDB instance...")
     try:

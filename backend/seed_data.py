@@ -20,8 +20,7 @@ except ImportError:
     pass
 
 MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'supplysense_db')
-MONGO_HOST = os.getenv('MONGO_HOST', 'mongodb+srv://sahilpatel3a_db_user:zhN1R7NxyD7h167T@supplysense-db.hgcsu0j.mongodb.net/?appName=supplysense-db')
-
+MONGO_HOST = os.getenv("MONGO_HOST")
 def seed_database():
     print("[*] Connecting to MongoEngine database...")
     me.disconnect()
