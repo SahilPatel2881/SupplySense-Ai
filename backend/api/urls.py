@@ -1,6 +1,6 @@
 from django.urls import path
 
-from api.views.auth_views import LoginView, ProfileView
+from api.views.auth_views import LoginView, VerifyOTPView, ResendOTPView, LogoutView, LoginAuditLogView, ProfileView
 from api.views.user_views import UserListCreateView, UserDetailView
 from api.views.warehouse_views import WarehouseListCreateView, WarehouseDetailView
 from api.views.category_views import CategoryListCreateView, CategoryDetailView
@@ -19,6 +19,10 @@ from api.views.ai_views import (
 urlpatterns = [
     # Auth
     path('auth/login/', LoginView.as_view(), name='login'),
+    path('auth/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
+    path('auth/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
+    path('auth/logout/', LogoutView.as_view(), name='logout'),
+    path('auth/login-history/', LoginAuditLogView.as_view(), name='login-history'),
     path('auth/profile/', ProfileView.as_view(), name='profile'),
 
     # Users (Admin)

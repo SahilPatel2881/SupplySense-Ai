@@ -10,6 +10,18 @@ export interface User {
   created_at?: string;
 }
 
+export interface LoginAuditLog {
+  id: string;
+  username: string;
+  role: string;
+  login_time: string;
+  logout_time?: string | null;
+  ip_address: string;
+  browser: string;
+  status: 'Success' | 'Failed' | 'Locked Out';
+  session_active: boolean;
+}
+
 export interface Warehouse {
   id: string;
   name: string;

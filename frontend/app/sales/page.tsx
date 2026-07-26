@@ -119,7 +119,7 @@ export default function SalesPage() {
                   <th className="p-4">Customer Name</th>
                   <th className="p-4">Dispatch Warehouse</th>
                   <th className="p-4">Items Count</th>
-                  <th className="p-4">Total Revenue ($)</th>
+                  <th className="p-4">Total Revenue (₹)</th>
                   <th className="p-4 text-right">PDF Invoice</th>
                 </tr>
               </thead>
@@ -133,7 +133,7 @@ export default function SalesPage() {
                     <td className="p-4 font-medium text-slate-900">{s.customer_name}</td>
                     <td className="p-4">{s.warehouse_name}</td>
                     <td className="p-4 font-bold">{s.items?.length || 0} Products</td>
-                    <td className="p-4 font-mono font-bold text-emerald-600">${s.total_amount?.toFixed(2)}</td>
+                    <td className="p-4 font-mono font-bold text-emerald-600">₹{s.total_amount?.toLocaleString('en-IN')}</td>
                     <td className="p-4 text-right">
                       <button
                         onClick={() => handleDownloadPDF(s.id, s.invoice_number)}

@@ -6,7 +6,7 @@ class User(me.Document):
     meta = {'collection': 'users', 'indexes': ['username', 'email', 'role']}
     
     username = me.StringField(required=True, unique=True, max_length=50)
-    email = me.EmailField(required=True, unique=True)
+    email = me.EmailField(required=False, default="")
     password_hash = me.StringField(required=True)
     full_name = me.StringField(max_length=100)
     role = me.StringField(
@@ -17,6 +17,12 @@ class User(me.Document):
     assigned_warehouse_id = me.StringField(default=None) # MongoDB ObjectId string or None
     is_active = me.BooleanField(default=True)
     created_at = me.DateTimeField(default=datetime.datetime.utcnow)
+    
+    # 2FA / OTP Security Fields
+    otp_code = me.StringField(default=None)
+    otp_created_at = me.DateTimeField(default=None)
+    otp_attempts = me.IntField(default=0)
+    locked_until = me.DateTimeField(default=None)
 
     def set_password(self, raw_password):
         self.password_hash = make_password(raw_password)
@@ -310,4 +316,30 @@ class Notification(me.Document):
             "type": self.type,
             "is_read": self.is_read,
             "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class LoginAuditLog(me.Document):
+    meta = {'collection': 'login_audit_logs', 'indexes': ['-login_time', 'username', 'status']}
+    
+    username = me.StringField(required=True, max_length=100)
+    role = me.StringField(max_length=50, default='Unknown')
+    login_time = me.DateTimeField(default=datetime.datetime.utcnow)
+    logout_time = me.DateTimeField(default=None)
+    ip_address = me.StringField(max_length=100, default='127.0.0.1')
+    browser = me.StringField(max_length=255, default='Chrome on Windows')
+    status = me.StringField(choices=['Success', 'Failed', 'Locked Out'], default='Success')
+    session_active = me.BooleanField(default=True)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "username": self.username,
+            "role": self.role,
+            "login_time": self.login_time.isoformat() if self.login_time else None,
+            "logout_time": self.logout_time.isoformat() if self.logout_time else None,
+            "ip_address": self.ip_address,
+            "browser": self.browser,
+            "status": self.status,
+            "session_active": self.session_active
         }

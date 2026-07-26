@@ -5,9 +5,11 @@ import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { FileText, Download, Table, FileSpreadsheet, ShieldAlert } from 'lucide-react';
 
+import { API_BASE_URL } from '../../lib/api';
+
 export default function ReportsPage() {
   const handleDownloadCSV = (reportType: string, filename: string) => {
-    const url = `http://localhost:8000/api/reports/${reportType}/`;
+    const url = `${API_BASE_URL}/reports/${reportType}/`;
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     
     fetch(url, {

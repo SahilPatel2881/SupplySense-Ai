@@ -13,7 +13,7 @@ export default function SettingsPage() {
     serviceLevelZ: 1.65,
     enableAutoNotifications: true,
     enableBarcodeScans: true,
-    currencySymbol: '$',
+    currencySymbol: '₹',
     lowStockThresholdDefault: 20
   });
 

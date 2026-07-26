@@ -68,15 +68,29 @@ DATABASES = {
 
 # MongoEngine MongoDB Connection Setup
 import mongoengine
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass
 
 MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'supplysense_db')
-MONGO_HOST = os.getenv('MONGO_HOST', 'mongodb://127.0.0.1:27017/' + MONGO_DB_NAME)
+MONGO_HOST = os.getenv('MONGO_HOST', 'mongodb+srv://sahilpatel3a_db_user:zhN1R7NxyD7h167T@supplysense-db.hgcsu0j.mongodb.net/?appName=supplysense-db')
 
 try:
-    mongoengine.connect(db=MONGO_DB_NAME, host=MONGO_HOST, serverSelectionTimeoutMS=2000)
-    print(f"[*] MongoEngine connected to database: {MONGO_DB_NAME}")
-except Exception as e:
-    print(f"[!] MongoEngine connection warning: {e}")
+    if 'default' not in mongoengine.connection._connections:
+        mongoengine.connect(db=MONGO_DB_NAME, host=MONGO_HOST, serverSelectionTimeoutMS=3000)
+        mongoengine.connection.get_connection().admin.command('ping')
+        print(f"[*] MongoEngine connected successfully to target database: {MONGO_DB_NAME}")
+except Exception as primary_err:
+    print(f"[!] MongoEngine primary host connection warning ({primary_err}). Falling back to local MongoDB instance...")
+    try:
+        mongoengine.disconnect()
+        local_host = f"mongodb://127.0.0.1:27017/{MONGO_DB_NAME}"
+        mongoengine.connect(db=MONGO_DB_NAME, host=local_host, serverSelectionTimeoutMS=2000)
+        print(f"[*] MongoEngine connected to local fallback database: {MONGO_DB_NAME}")
+    except Exception as fallback_err:
+        print(f"[!] MongoEngine connection error: {fallback_err}")
 
 AUTH_PASSWORD_VALIDATORS = []
 
@@ -111,3 +125,12 @@ SIMPLE_JWT = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+# Email SMTP Configuration for 2-Step Verification
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'sahilbhutt2007@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = 'SupplySense AI Security <sahilbhutt2007@gmail.com>'

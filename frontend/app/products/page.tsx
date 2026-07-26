@@ -130,16 +130,16 @@ export default function ProductsPage() {
                   <th className="p-4">SKU / Product Name</th>
                   <th className="p-4">Category</th>
                   <th className="p-4">Supplier</th>
-                  <th className="p-4">Cost Price ($)</th>
-                  <th className="p-4">Selling Price ($)</th>
-                  <th className="p-4">Margin ($)</th>
+                  <th className="p-4">Cost Price (₹)</th>
+                  <th className="p-4">Selling Price (₹)</th>
+                  <th className="p-4">Margin (₹)</th>
                   <th className="p-4">Min Stock</th>
                   <th className="p-4">Reorder Point</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
                 {filteredProducts.map((p) => {
-                  const margin = (p.selling_price - p.cost_price).toFixed(2);
+                  const margin = (p.selling_price - p.cost_price).toLocaleString('en-IN');
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/80">
                       <td className="p-4 font-bold text-slate-900">
@@ -148,9 +148,9 @@ export default function ProductsPage() {
                       </td>
                       <td className="p-4"><span className="px-2 py-0.5 rounded bg-slate-100 font-semibold">{p.category_name}</span></td>
                       <td className="p-4 font-medium">{p.supplier_name}</td>
-                      <td className="p-4 font-mono">${p.cost_price?.toFixed(2)}</td>
-                      <td className="p-4 font-mono font-bold text-slate-900">${p.selling_price?.toFixed(2)}</td>
-                      <td className="p-4 font-mono font-bold text-emerald-600">+${margin}</td>
+                      <td className="p-4 font-mono">₹{p.cost_price?.toLocaleString('en-IN')}</td>
+                      <td className="p-4 font-mono font-bold text-slate-900">₹{p.selling_price?.toLocaleString('en-IN')}</td>
+                      <td className="p-4 font-mono font-bold text-emerald-600">+₹{margin}</td>
                       <td className="p-4">{p.min_stock_level} {p.unit}</td>
                       <td className="p-4 font-bold text-blue-600">{p.reorder_point} {p.unit}</td>
                     </tr>

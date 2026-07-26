@@ -113,7 +113,7 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <div>
                 <p className="font-bold">{foundProduct.name}</p>
-                <p className="text-[10px] opacity-80">SKU: {foundProduct.sku} | Selling Price: ${foundProduct.selling_price || 'N/A'}</p>
+                <p className="text-[10px] opacity-80">SKU: {foundProduct.sku} | Selling Price: ₹{foundProduct.selling_price ? foundProduct.selling_price.toLocaleString('en-IN') : 'N/A'}</p>
               </div>
             </div>
           </div>

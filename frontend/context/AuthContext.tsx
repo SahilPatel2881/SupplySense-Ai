@@ -4,12 +4,32 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import api from '../lib/api';
 import { User } from '../types';
 
+interface LoginResult {
+  success: boolean;
+  requireOTP?: boolean;
+  username?: string;
+  maskedEmail?: string;
+  demoOTP?: string;
+  error?: string;
+  locked?: boolean;
+}
+
+interface VerifyOTPResult {
+  success: boolean;
+  role?: string;
+  error?: string;
+  locked?: boolean;
+  attemptsRemaining?: number;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
   error: string | null;
-  login: (username: string, password: string) => Promise<{ success: boolean; role?: string; error?: string }>;
+  login: (username: string, password: string) => Promise<LoginResult>;
+  verifyOTP: (username: string, otp: string) => Promise<VerifyOTPResult>;
+  resendOTP: (username: string) => Promise<{ success: boolean; demoOTP?: string; error?: string }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
   isAdmin: boolean;
@@ -40,11 +60,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     setLoading(true);
     setError(null);
     try {
       const res = await api.post('/auth/login/', { username, password });
+      setLoading(false);
+      if (res.data.status === 'OTP_REQUIRED') {
+        return {
+          success: true,
+          requireOTP: true,
+          username: res.data.username,
+          maskedEmail: res.data.masked_email,
+          demoOTP: res.data.demo_otp
+        };
+      }
+      // Direct login fallback if ever returned
+      const { access, user: userData } = res.data;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', access);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      setToken(access);
+      setUser(userData);
+      return { success: true, requireOTP: false };
+    } catch (err: any) {
+      setLoading(false);
+      const isLocked = err.response?.status === 423 || err.response?.data?.locked;
+      const msg = err.response?.data?.error || 'Login failed. Please check your credentials.';
+      setError(msg);
+      return { success: false, error: msg, locked: isLocked };
+    }
+  };
+
+  const verifyOTP = async (username: string, otp: string): Promise<VerifyOTPResult> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.post('/auth/verify-otp/', { username, otp });
       const { access, user: userData } = res.data;
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', access);
@@ -56,8 +109,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { success: true, role: userData.role };
     } catch (err: any) {
       setLoading(false);
-      const msg = err.response?.data?.error || 'Login failed. Please check your credentials.';
+      const isLocked = err.response?.status === 423 || err.response?.data?.locked;
+      const attemptsRemaining = err.response?.data?.attempts_remaining;
+      const msg = err.response?.data?.error || 'Verification failed. Please check your OTP.';
       setError(msg);
+      return { success: false, error: msg, locked: isLocked, attemptsRemaining };
+    }
+  };
+
+  const resendOTP = async (username: string) => {
+    try {
+      const res = await api.post('/auth/resend-otp/', { username });
+      return { success: true, demoOTP: res.data.demo_otp };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to resend OTP.';
       return { success: false, error: msg };
     }
   };
@@ -94,6 +159,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     error,
     login,
+    verifyOTP,
+    resendOTP,
     logout,
     refreshProfile,
     isAdmin: role === 'Admin',

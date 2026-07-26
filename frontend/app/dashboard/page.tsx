@@ -78,7 +78,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10">
             <div>
               <p className="text-[10px] text-slate-300 uppercase tracking-wider font-bold">Total Company Revenue</p>
-              <p className="text-2xl font-black text-emerald-400">${insights?.total_company_revenue?.toLocaleString() || '0.00'}</p>
+              <p className="text-2xl font-black text-emerald-400">₹{insights?.total_company_revenue?.toLocaleString('en-IN') || '0.00'}</p>
             </div>
           </div>
         )}
@@ -101,7 +101,7 @@ export default function DashboardPage() {
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><DollarSign className="w-5 h-5" /></div>
           </div>
           <h3 className="text-lg font-bold text-slate-900 truncate">{insights?.highest_revenue_product?.name || 'N/A'}</h3>
-          <p className="text-xs text-emerald-600 font-semibold mt-1">${insights?.highest_revenue_product?.revenue?.toLocaleString() || '0.00'} Generated</p>
+          <p className="text-xs text-emerald-600 font-semibold mt-1">₹{insights?.highest_revenue_product?.revenue?.toLocaleString('en-IN') || '0.00'} Generated</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
@@ -110,7 +110,7 @@ export default function DashboardPage() {
             <div className="p-2 bg-purple-50 text-purple-600 rounded-lg"><Building2 className="w-5 h-5" /></div>
           </div>
           <h3 className="text-lg font-bold text-slate-900 truncate">{insights?.best_warehouse?.name || 'N/A'}</h3>
-          <p className="text-xs text-purple-600 font-semibold mt-1">${insights?.best_warehouse?.revenue?.toLocaleString() || '0.00'} Revenue</p>
+          <p className="text-xs text-purple-600 font-semibold mt-1">₹{insights?.best_warehouse?.revenue?.toLocaleString('en-IN') || '0.00'} Revenue</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow">

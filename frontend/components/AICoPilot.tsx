@@ -81,9 +81,9 @@ const AICoPilot: React.FC<AICoPilotProps> = ({ isOpen, onClose }) => {
         }
       } else if (q.includes('warehouse') || q.includes('revenue') || q.includes('best')) {
         const res = await api.get('/ai/business-insights/');
-        aiReply = `🏆 Best Warehouse: ${res.data.best_warehouse?.name} with $${res.data.best_warehouse?.revenue?.toLocaleString()} revenue!\n` +
+        aiReply = `🏆 Best Warehouse: ${res.data.best_warehouse?.name} with ₹${res.data.best_warehouse?.revenue?.toLocaleString('en-IN')} revenue!\n` +
           `🔥 Most Sold Product: ${res.data.most_sold_product?.name} (${res.data.most_sold_product?.qty} units sold)\n` +
-          `💰 Total Revenue: $${res.data.total_company_revenue?.toLocaleString()}`;
+          `💰 Total Revenue: ₹${res.data.total_company_revenue?.toLocaleString('en-IN')}`;
       } else if (q.includes('supplier') || q.includes('reliability') || q.includes('lead time')) {
         const res = await api.get('/suppliers/');
         const topSup = res.data.sort((a: any, b: any) => b.reliability_score - a.reliability_score)[0];
@@ -100,7 +100,7 @@ const AICoPilot: React.FC<AICoPilotProps> = ({ isOpen, onClose }) => {
         const res = await api.get('/ai/business-insights/');
         aiReply = `🤖 SupplySense AI System Telemetry Summary:\n` +
           `• Total Orders Processed: ${res.data.total_orders}\n` +
-          `• Total Revenue: $${res.data.total_company_revenue?.toLocaleString()}\n` +
+          `• Total Revenue: ₹${res.data.total_company_revenue?.toLocaleString('en-IN')}\n` +
           `• Fast Moving Category: ${res.data.fast_moving_category}\n` +
           `You can navigate to the AI Analytics tab to view Random Forest demand forecasting and Scikit-learn confusion matrices!`;
       }

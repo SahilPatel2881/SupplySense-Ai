@@ -123,7 +123,7 @@ export default function PurchaseOrdersPage() {
                   <th className="p-4">PO Number & Date</th>
                   <th className="p-4">Supplier</th>
                   <th className="p-4">Destination Warehouse</th>
-                  <th className="p-4">Total Amount ($)</th>
+                  <th className="p-4">Total Amount (₹)</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 text-right">Procurement Action</th>
                 </tr>
@@ -137,7 +137,7 @@ export default function PurchaseOrdersPage() {
                     </td>
                     <td className="p-4 font-medium">{po.supplier_name}</td>
                     <td className="p-4">{po.warehouse_name}</td>
-                    <td className="p-4 font-mono font-bold text-slate-900">${po.total_amount?.toFixed(2)}</td>
+                    <td className="p-4 font-mono font-bold text-slate-900">₹{po.total_amount?.toLocaleString('en-IN')}</td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${po.status === 'RECEIVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : po.status === 'APPROVED' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                         {po.status}

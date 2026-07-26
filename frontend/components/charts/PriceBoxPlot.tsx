@@ -13,7 +13,7 @@ const PriceBoxPlot: React.FC<PriceBoxPlotProps> = ({ prices }) => {
   const trace = {
     y: prices || [12, 75, 42, 3.5, 22, 140, 38, 480],
     type: 'box' as const,
-    name: 'Selling Prices ($)',
+    name: 'Selling Prices (₹)',
     marker: { color: '#0EA5E9' },
     boxpoints: 'outliers' as const
   };
@@ -27,7 +27,7 @@ const PriceBoxPlot: React.FC<PriceBoxPlotProps> = ({ prices }) => {
           autosize: true,
           height: 320,
           margin: { l: 45, r: 25, t: 40, b: 35 },
-          yaxis: { title: 'Price ($)', gridcolor: '#F1F5F9' },
+          yaxis: { title: 'Price (₹)', gridcolor: '#F1F5F9' },
           paper_bgcolor: 'transparent',
           plot_bgcolor: 'transparent'
         }}
