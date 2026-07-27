@@ -1,12 +1,12 @@
-import numpy as np
-import pandas as pd
-
 class EDAEngine:
     @staticmethod
     def generate_eda_report(products_data, sales_data, stocks_data, suppliers_data, warehouses_data):
         """
         Executes comprehensive Pandas Exploratory Data Analysis (EDA)
         """
+        import numpy as np
+        import pandas as pd
+
         # Convert lists to DataFrames
         df_products = pd.DataFrame(products_data) if products_data else pd.DataFrame(columns=['id', 'name', 'cost_price', 'selling_price', 'category_id', 'supplier_id'])
         df_sales = pd.DataFrame(sales_data) if sales_data else pd.DataFrame(columns=['id', 'warehouse_id', 'total_amount', 'created_at'])
@@ -98,8 +98,8 @@ class EDAEngine:
             "statistical_summary": stat_summary,
             "summary_kpis": {
                 "total_products": len(df_products),
+                "total_sales_count": len(df_sales),
                 "total_suppliers": len(df_suppliers),
-                "total_warehouses": len(df_warehouses),
-                "total_sales_records": len(df_sales)
+                "total_warehouses": len(df_warehouses)
             }
         }

@@ -13,6 +13,8 @@ from api.models import (
     StockMovement, PurchaseOrder, POItem, Sale, SaleItem, Notification
 )
 
+import certifi
+
 try:
     from dotenv import load_dotenv
     load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
@@ -20,20 +22,30 @@ except ImportError:
     pass
 
 MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'supplysense_db')
-MONGO_HOST = os.getenv("MONGO_HOST")
+MONGO_HOST = os.getenv('MONGO_HOST', 'mongodb+srv://sahilpatel3a_db_user:sahilpatel3a_db_user@supplysense-db.hgcsu0j.mongodb.net/supplysense_db?retryWrites=true&w=majority&appName=supplysense-db')
+
 def seed_database():
     print("[*] Connecting to MongoEngine database...")
     me.disconnect()
+    if not MONGO_HOST:
+        raise RuntimeError("[ERROR] MONGO_HOST environment variable is missing!")
+
+    connect_kwargs = {
+        'db': MONGO_DB_NAME,
+        'host': MONGO_HOST,
+        'serverSelectionTimeoutMS': 10000,
+    }
+    if 'mongodb+srv://' in MONGO_HOST or 'ssl=true' in MONGO_HOST.lower() or 'tls=true' in MONGO_HOST.lower():
+        connect_kwargs['tls'] = True
+        connect_kwargs['tlsCAFile'] = certifi.where()
+
     try:
-        me.connect(db=MONGO_DB_NAME, host=MONGO_HOST, serverSelectionTimeoutMS=3000)
+        me.connect(**connect_kwargs)
         me.connection.get_connection().admin.command('ping')
-        print(f"[*] MongoEngine connected to target database: {MONGO_DB_NAME}")
-    except Exception as primary_err:
-        print(f"[!] Primary host connection warning ({primary_err}). Falling back to local MongoDB instance...")
-        me.disconnect()
-        local_host = f"mongodb://127.0.0.1:27017/{MONGO_DB_NAME}"
-        me.connect(db=MONGO_DB_NAME, host=local_host, serverSelectionTimeoutMS=2000)
-        print(f"[*] MongoEngine connected to local fallback database: {local_host}")
+        print(f"[*] MongoEngine connected to MongoDB Atlas database: {MONGO_DB_NAME}")
+    except Exception as e:
+        print(f"[ERROR] Failed to connect to MongoDB Atlas in seed_data: {e}")
+        raise e
 
     print("[*] Cleaning existing seed data...")
     User.drop_collection()

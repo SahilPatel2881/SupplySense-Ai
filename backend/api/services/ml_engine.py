@@ -1,18 +1,5 @@
 import math
-import numpy as np
-import pandas as pd
 
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.pipeline import make_pipeline
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import (
-    mean_absolute_error, mean_squared_error, r2_score,
-    confusion_matrix, accuracy_score, precision_score, recall_score
-)
 
 class MLEngine:
     @staticmethod
@@ -21,6 +8,16 @@ class MLEngine:
         Input: historical_sales_df with columns ['day_index', 'sales_qty']
         Output: dict with predictions array, future dates, and evaluation metrics (MAE, MSE, R2)
         """
+        import numpy as np
+        import pandas as pd
+
+        from sklearn.linear_model import LinearRegression
+        from sklearn.preprocessing import PolynomialFeatures
+        from sklearn.pipeline import make_pipeline
+        from sklearn.tree import DecisionTreeRegressor
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
         if historical_sales_df is None or len(historical_sales_df) < 5:
             # Generate synthetic fallback baseline dataset for demo/initialization
             days = np.arange(1, 61)
@@ -99,6 +96,17 @@ class MLEngine:
         Input: supplier_features_df with ['lead_time_days', 'defect_rate', 'fulfillment_rate', 'high_risk']
         Output: Classifier evaluation metrics (Accuracy, Precision, Recall, Specificity, Confusion Matrix)
         """
+        import numpy as np
+        import pandas as pd
+
+        from sklearn.tree import DecisionTreeClassifier
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.neighbors import KNeighborsClassifier
+        from sklearn.svm import SVC
+        from sklearn.metrics import (
+            confusion_matrix, accuracy_score, precision_score, recall_score
+        )
+
         if supplier_features_df is None or len(supplier_features_df) < 10:
             # Generate synthetic supplier features dataset
             np.random.seed(42)

@@ -1,17 +1,18 @@
-import numpy as np
-import pandas as pd
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from api.permissions import IsAuthenticatedUser, IsAdminUserRole
 from api.models import Product, Stock, Sale, Supplier, Warehouse, Category
-from api.services.ml_engine import MLEngine
-from api.services.eda_engine import EDAEngine
+
 
 class DemandForecastView(APIView):
     permission_classes = [IsAuthenticatedUser]
 
     def get(self, request):
+        import numpy as np
+        import pandas as pd
+        from api.services.ml_engine import MLEngine
+
         model_type = request.query_params.get('model', 'random_forest')
         days_ahead = int(request.query_params.get('days', 30))
 
@@ -42,6 +43,9 @@ class SupplierReliabilityView(APIView):
     permission_classes = [IsAuthenticatedUser]
 
     def get(self, request):
+        import pandas as pd
+        from api.services.ml_engine import MLEngine
+
         model_type = request.query_params.get('model', 'random_forest')
         suppliers = Supplier.objects()
         
@@ -65,6 +69,8 @@ class LowStockPredictionView(APIView):
     permission_classes = [IsAuthenticatedUser]
 
     def get(self, request):
+        from api.services.ml_engine import MLEngine
+
         user = request.user
         products = Product.objects()
         recommendations = []
@@ -81,7 +87,7 @@ class LowStockPredictionView(APIView):
                 stocks = Stock.objects(product_id=str(p.id))
                 current_qty = sum(s.quantity for s in stocks)
 
-            # Estimate daily demand (default 5.0 units/day)
+            # Estimate daily demand (default 2.0 units/day minimum)
             daily_demand = max(2.0, p.min_stock_level / 4.0)
 
             rec = MLEngine.calculate_reorder_recommendation(
@@ -105,6 +111,8 @@ class EDAAnalyticsView(APIView):
     permission_classes = [IsAuthenticatedUser]
 
     def get(self, request):
+        from api.services.eda_engine import EDAEngine
+
         products_data = [p.to_dict() for p in Product.objects()]
         sales_data = [s.to_dict() for s in Sale.objects()]
         stocks_data = [st.to_dict() for st in Stock.objects()]
