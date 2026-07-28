@@ -73,7 +73,7 @@ export default function SuppliersPage() {
               <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                 <Truck className="w-6 h-6 text-blue-600" /> Supplier Directory & Performance
               </h2>
-              <p className="text-slate-500 text-xs mt-1">Track lead time variance, fulfillment efficiency, defect percentages, and AI reliability scores.</p>
+              <p className="text-slate-500 text-xs mt-1">Track lead time variance, fulfillment efficiency, defect percentages, and supplier reliability ratings.</p>
             </div>
 
             {isAdmin && (

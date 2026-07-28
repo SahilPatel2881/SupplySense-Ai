@@ -77,7 +77,7 @@ except ImportError:
     pass
 
 MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'supplysense_db')
-MONGO_HOST = os.getenv('MONGO_HOST', 'mongodb+srv://sahilpatel3a_db_user:sahilpatel3a_db_user@supplysense-db.hgcsu0j.mongodb.net/supplysense_db?retryWrites=true&w=majority&appName=supplysense-db')
+MONGO_HOST = os.getenv('MONGO_HOST', 'mongodb://127.0.0.1:27017/supplysense_db')
 
 if not MONGO_HOST:
     raise RuntimeError("[ERROR] MONGO_HOST environment variable is missing!")
@@ -95,9 +95,9 @@ try:
 
         mongoengine.connect(**connect_kwargs)
         mongoengine.connection.get_connection().admin.command('ping')
-        print(f"[*] MongoEngine connected successfully to MongoDB Atlas: {MONGO_DB_NAME}")
+        print(f"[*] MongoEngine connected successfully to MongoDB: {MONGO_DB_NAME}")
 except Exception as e:
-    print(f"[ERROR] Failed to connect to MongoDB Atlas: {e}")
+    print(f"[ERROR] Failed to connect to MongoDB: {e}")
     raise e
 
 AUTH_PASSWORD_VALIDATORS = []

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import {
-  BrainCircuit,
   Lock,
   User as UserIcon,
   ArrowRight,
@@ -329,9 +328,9 @@ export default function LoginPage() {
         {/* Brand */}
         <div className="text-center mb-6">
           <div className="inline-flex p-3.5 bg-blue-600 rounded-2xl text-white shadow-xl shadow-blue-500/30 mb-3">
-            <BrainCircuit className="w-9 h-9 animate-pulse" />
+            <Boxes className="w-9 h-9" />
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">SupplySense AI</h1>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">SupplySense ERP</h1>
           <p className="text-xs text-slate-400 mt-1">Enterprise Supply Chain & 7-Role Hierarchy Management</p>
         </div>
 

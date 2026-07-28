@@ -1,407 +1,306 @@
 import os
-import sys
-import datetime
 import random
-import mongoengine as me
+import datetime
+import django
 
-# Add backend directory to sys path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Setup Django environment
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+django.setup()
 
 from api.models import (
     User, Warehouse, Category, Supplier, Product, Stock,
-    StockMovement, PurchaseOrder, POItem, Sale, SaleItem, Notification
+    PurchaseOrder, POItem, Sale, SaleItem
 )
 
-import certifi
+def run_seed():
+    print("[*] Starting Ultra-Fast MongoDB Bulk Data Seeding...")
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
-except ImportError:
-    pass
-
-MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'supplysense_db')
-MONGO_HOST = os.getenv('MONGO_HOST', 'mongodb+srv://sahilpatel3a_db_user:sahilpatel3a_db_user@supplysense-db.hgcsu0j.mongodb.net/supplysense_db?retryWrites=true&w=majority&appName=supplysense-db')
-
-def seed_database():
-    print("[*] Connecting to MongoEngine database...")
-    me.disconnect()
-    if not MONGO_HOST:
-        raise RuntimeError("[ERROR] MONGO_HOST environment variable is missing!")
-
-    connect_kwargs = {
-        'db': MONGO_DB_NAME,
-        'host': MONGO_HOST,
-        'serverSelectionTimeoutMS': 10000,
-    }
-    if 'mongodb+srv://' in MONGO_HOST or 'ssl=true' in MONGO_HOST.lower() or 'tls=true' in MONGO_HOST.lower():
-        connect_kwargs['tls'] = True
-        connect_kwargs['tlsCAFile'] = certifi.where()
-
-    try:
-        me.connect(**connect_kwargs)
-        me.connection.get_connection().admin.command('ping')
-        print(f"[*] MongoEngine connected to MongoDB Atlas database: {MONGO_DB_NAME}")
-    except Exception as e:
-        print(f"[ERROR] Failed to connect to MongoDB Atlas in seed_data: {e}")
-        raise e
-
-    print("[*] Cleaning existing seed data...")
-    User.drop_collection()
-    Warehouse.objects.delete()
-    Category.objects.delete()
-    Supplier.objects.delete()
-    Product.objects.delete()
-    Stock.objects.delete()
-    StockMovement.objects.delete()
-    PurchaseOrder.objects.delete()
-    Sale.objects.delete()
-    Notification.objects.delete()
-
-    print("[*] Creating 5 Strategic Indian & Gujarat Warehouses...")
-    wh1 = Warehouse(name="GIDC Mundra Mega Logistics Park", code="WH-MUN-01", location="Mundra Port, Kutch, Gujarat", capacity=45000, contact_number="+91-2838-255011").save()
-    wh2 = Warehouse(name="Sanand Industrial Hub Warehouse", code="WH-SAN-02", location="Sanand GIDC, Ahmedabad, Gujarat", capacity=32000, contact_number="+91-79-29750144").save()
-    wh3 = Warehouse(name="Hazira Heavy Industrial Depot", code="WH-HAZ-03", location="Hazira Port, Surat, Gujarat", capacity=28000, contact_number="+91-261-2855188").save()
-    wh4 = Warehouse(name="Bhiwandi National Supply Hub", code="WH-BHI-04", location="Bhiwandi, Thane, Maharashtra", capacity=50000, contact_number="+91-22-25801990").save()
-    wh5 = Warehouse(name="Sriperumbudur Tech Park Depot", code="WH-SRP-05", location="Sriperumbudur, Chennai, Tamil Nadu", capacity=22000, contact_number="+91-44-27150122").save()
-
-    print("[*] Creating 7-Role Hierarchy Users for Gujarat Project Team...")
-
-    # 1. Admin (Sahil Patel - Gujarat HQ)
-    admin = User(username="Sahil Patel", email="sahilbhutt2007@gmail.com", full_name="Sahil Patel", role="Admin")
-    admin.set_password("Sah@2007")
-    admin.save()
-
-    # 2. Warehouse Manager (Krish)
-    mgr1 = User(username="Krish", email="Krishjetani55@gmail.com", full_name="Krish", role="WarehouseManager", assigned_warehouse_id=str(wh1.id))
-    mgr1.set_password("krish123")
-    mgr1.save()
-
-    # 3. Inventory Manager (Dhyan)
-    inv_mgr = User(username="Dhyan", email="bhattdhyan056@gmail.com", full_name="Dhyan", role="InventoryManager", assigned_warehouse_id=str(wh1.id))
-    inv_mgr.set_password("dhyan123")
-    inv_mgr.save()
-
-    # 4. Stock Manager (Shreya)
-    stock_mgr = User(username="Shreya", email="sahilbhutt2007@gmail.com", full_name="Shreya", role="StockManager", assigned_warehouse_id=str(wh1.id))
-    stock_mgr.set_password("shreya123")
-    stock_mgr.save()
-
-    # 5. Purchase Manager (Aarav)
-    purchase_mgr = User(username="Aarav", email="Krishjetani55@gmail.com", full_name="Aarav", role="PurchaseManager")
-    purchase_mgr.set_password("aarav123")
-    purchase_mgr.save()
-
-    # 6. Sales Manager (Priya)
-    sales_mgr = User(username="Priya", email="bhattdhyan056@gmail.com", full_name="Priya", role="SalesManager")
-    sales_mgr.set_password("priya123")
-    sales_mgr.save()
-
-    # 7. Warehouse Employees 1 - 5
-    emp1 = User(username="employee1", email="sahilbhutt2007@gmail.com", full_name="Warehouse Employee 1", role="WarehouseEmployee", assigned_warehouse_id=str(wh1.id))
-    emp1.set_password("emp123")
-    emp1.save()
-
-    emp2 = User(username="employee2", email="sahilbhutt2007@gmail.com", full_name="Warehouse Employee 2", role="WarehouseEmployee", assigned_warehouse_id=str(wh2.id))
-    emp2.set_password("emp123")
-    emp2.save()
-
-    emp3 = User(username="employee3", email="sahilbhutt2007@gmail.com", full_name="Warehouse Employee 3", role="WarehouseEmployee", assigned_warehouse_id=str(wh3.id))
-    emp3.set_password("emp123")
-    emp3.save()
-
-    emp4 = User(username="employee4", email="sahilbhutt2007@gmail.com", full_name="Warehouse Employee 4", role="WarehouseEmployee", assigned_warehouse_id=str(wh4.id))
-    emp4.set_password("emp123")
-    emp4.save()
-
-    emp5 = User(username="employee5", email="sahilbhutt2007@gmail.com", full_name="Warehouse Employee 5", role="WarehouseEmployee", assigned_warehouse_id=str(wh5.id))
-    emp5.set_password("emp123")
-    emp5.save()
-
-    wh1.manager_id = str(mgr1.id)
-    wh1.save()
-
-    print("[*] Creating 8 Indian Product Categories...")
-    cat1 = Category(name="Industrial Machinery & Automation", code="CAT-IND", description="Motors, hydraulic valves, CNC tools, VFDs, and heavy machinery").save()
-    cat2 = Category(name="Electronics & Semiconductor", code="CAT-ELEC", description="Integrated circuits, ARM boards, sensors, and power modules").save()
-    cat3 = Category(name="Textiles & Cotton Garments", code="CAT-TEX", description="Organic cotton bales, polyester yarns, denim fabrics, and silk cones").save()
-    cat4 = Category(name="Chemicals & Polymers", code="CAT-CHEM", description="HDPE granules, polypropylene powders, caustic soda, and industrial solvents").save()
-    cat5 = Category(name="FMCG & Agri Commodities", code="CAT-AGRI", description="Groundnut oil drums, Basmati rice, spices, and refined sugar").save()
-    cat6 = Category(name="Solar & Renewable Energy", code="CAT-SOLAR", description="550W solar panels, grid-tie inverters, and Li-ion battery racks").save()
-    cat7 = Category(name="Automotive Engineering", code="CAT-AUTO", description="Brake discs, alloy wheels, transmission gears, and spark plugs").save()
-    cat8 = Category(name="Pharmaceuticals & Lifesciences", code="CAT-PHARM", description="Paracetamol API powders, Amoxicillin, saline bags, and blister packaging").save()
-
-    print("[*] Creating 8 Top Indian Industrial Suppliers...")
-    sup1 = Supplier(name="Reliance Polymer & Chemical Industries", code="SUP-RELIANCE", contact_person="Rajesh Sharma", email="orders@reliancepoly.co.in", phone="+91-261-6699000", lead_time_days=3.5, defect_rate=0.005, fulfillment_rate=0.991, reliability_score=98.5).save()
-    sup2 = Supplier(name="Tata Electronics & Semiconductor Ltd", code="SUP-TATA-ELEC", contact_person="Ananya Desai", email="b2b@tataelectronics.in", phone="+91-79-67778800", lead_time_days=4.0, defect_rate=0.008, fulfillment_rate=0.985, reliability_score=96.2).save()
-    sup3 = Supplier(name="Adani Ports & Logistics Infrastructure", code="SUP-ADANI-LOG", contact_person="Viren Mehta", email="logistics@adani.com", phone="+91-2838-255800", lead_time_days=2.5, defect_rate=0.002, fulfillment_rate=0.995, reliability_score=99.1).save()
-    sup4 = Supplier(name="Sun Pharma & Lifesciences Corp", code="SUP-SUNPHARMA", contact_person="Dr. Amit Trivedi", email="supplychain@sunpharma.com", phone="+91-265-2307000", lead_time_days=5.0, defect_rate=0.004, fulfillment_rate=0.988, reliability_score=97.8).save()
-    sup5 = Supplier(name="Arvind Textile Mills Ltd", code="SUP-ARVIND", contact_person="Harish Lakhani", email="fabrics@arvind.in", phone="+91-79-68223000", lead_time_days=6.0, defect_rate=0.012, fulfillment_rate=0.965, reliability_score=93.4).save()
-    sup6 = Supplier(name="Bharat Heavy Electricals Ltd (BHEL)", code="SUP-BHEL", contact_person="Sanjay Verma", email="commercial@bhel.in", phone="+91-265-2271000", lead_time_days=7.0, defect_rate=0.015, fulfillment_rate=0.950, reliability_score=91.0).save()
-    sup7 = Supplier(name="Mahindra Engineering & Auto Components", code="SUP-MAHINDRA", contact_person="Pravin Kulkarni", email="autocomp@mahindra.com", phone="+91-20-66120000", lead_time_days=4.5, defect_rate=0.010, fulfillment_rate=0.975, reliability_score=95.0).save()
-    sup8 = Supplier(name="Gujarat State Fertilizers & Chemicals (GSFC)", code="SUP-GSFC", contact_person="Ramesh Patel", email="agri-chem@gsfcltd.com", phone="+91-265-2242451", lead_time_days=3.0, defect_rate=0.006, fulfillment_rate=0.982, reliability_score=96.8).save()
-
-    print("[*] Generating 120+ High-Realism Indian Products...")
-    
-    product_templates = [
-        # Industrial Machinery & Automation
-        ("Hydraulic Pressure Relief Valve 350 Bar", "SKU-IND-001", cat1, sup6, "pcs", 4500, 8500, 15, 30),
-        ("Variable Frequency Drive 15kW 415V", "SKU-IND-002", cat1, sup6, "pcs", 18500, 32000, 8, 15),
-        ("High-Torque Industrial Stepper Motor NEMA 34", "SKU-IND-003", cat1, sup6, "pcs", 2800, 5200, 20, 40),
-        ("CNC Carbide End Mill Cutting Tool Set", "SKU-IND-004", cat1, sup7, "set", 1400, 2800, 25, 50),
-        ("Heavy Precision Ball Bearing 6210 2RS", "SKU-IND-005", cat1, sup7, "pcs", 380, 750, 100, 200),
-        ("Pneumatic Cylinder Double Acting 50mm", "SKU-IND-006", cat1, sup6, "pcs", 1200, 2400, 30, 60),
-        ("PLC Automation Controller 24V DC", "SKU-IND-007", cat1, sup2, "pcs", 12500, 22000, 10, 20),
-        ("Industrial Gearbox Helical 5:1 Ratio", "SKU-IND-008", cat1, sup7, "pcs", 24000, 42000, 5, 12),
-        ("Stainless Steel Centrifugal Water Pump 5HP", "SKU-IND-009", cat1, sup6, "pcs", 15500, 28500, 6, 15),
-        ("Proximity Inductive Sensor M12 NPN", "SKU-IND-010", cat1, sup2, "pcs", 450, 950, 80, 150),
-        ("Industrial Servo Drive Motor 750W", "SKU-IND-011", cat1, sup2, "pcs", 14500, 26000, 10, 20),
-        ("Pneumatic Solenoid Valve 5/2 Way 24V", "SKU-IND-012", cat1, sup6, "pcs", 850, 1750, 40, 80),
-        ("Linear Motion Guide Rail 20mm 1000mm", "SKU-IND-013", cat1, sup7, "pcs", 3200, 6400, 15, 30),
-        ("Heavy Industrial Conveyor Belt 650mm Roll", "SKU-IND-014", cat1, sup3, "roll", 28000, 54000, 4, 8),
-        ("Automatic Pressure Switch 1-10 Bar", "SKU-IND-015", cat1, sup6, "pcs", 1100, 2200, 25, 50),
-
-        # Electronics & Semiconductor
-        ("FPGA Development Board PCIe Gen4", "SKU-ELEC-016", cat2, sup2, "pcs", 28000, 54000, 10, 20),
-        ("ARM Cortex-M4 Industrial Microcontroller IC", "SKU-ELEC-017", cat2, sup2, "pcs", 220, 480, 300, 600),
-        ("Power MOSFET Module 600V 50A", "SKU-ELEC-018", cat2, sup2, "pcs", 650, 1350, 120, 250),
-        ("Industrial IoT Sensor Gateway LoRaWAN", "SKU-ELEC-019", cat2, sup2, "pcs", 8500, 16500, 12, 25),
-        ("Raspberry Pi 4 Compute Module 8GB", "SKU-ELEC-020", cat2, sup2, "pcs", 4800, 8800, 25, 50),
-        ("Optocoupler High-Speed Isolator IC", "SKU-ELEC-021", cat2, sup2, "pcs", 35, 85, 1000, 2000),
-        ("Multilayer Ceramic Capacitor 10uF 50V (Reel 4000)", "SKU-ELEC-022", cat2, sup2, "reel", 850, 1850, 50, 100),
-        ("SMD Voltage Regulator 3.3V LDO Box", "SKU-ELEC-023", cat2, sup2, "box", 450, 980, 80, 160),
-        ("Digital Oscilloscope Probe 200MHz", "SKU-ELEC-024", cat2, sup2, "pcs", 1800, 3800, 15, 30),
-        ("RS485 Modbus Communication Transceiver IC", "SKU-ELEC-025", cat2, sup2, "pcs", 85, 195, 400, 800),
-        ("Microcontroller PIC18F4550 DIP40", "SKU-ELEC-026", cat2, sup2, "pcs", 180, 390, 150, 300),
-        ("OLED Display Module 0.96 inch I2C", "SKU-ELEC-027", cat2, sup2, "pcs", 140, 320, 200, 400),
-        ("LiPo Battery Charger Controller Board 1A", "SKU-ELEC-028", cat2, sup2, "pcs", 45, 110, 500, 1000),
-        ("DC-DC Buck Converter Step-Down Module 5A", "SKU-ELEC-029", cat2, sup2, "pcs", 120, 280, 300, 600),
-        ("Precision Current Transformer 100A/5A", "SKU-ELEC-030", cat2, sup2, "pcs", 320, 750, 100, 200),
-
-        # Textiles & Garments (Gujarat Specialty)
-        ("Gujarat Organic Raw Cotton Bale 170kg", "SKU-TEX-031", cat3, sup5, "bale", 16500, 24500, 30, 60),
-        ("Surat Polyester Filament Yarn Spool 5kg", "SKU-TEX-032", cat3, sup5, "spool", 780, 1450, 150, 300),
-        ("Premium Denim Indigo Fabric Roll 100m", "SKU-TEX-033", cat3, sup5, "roll", 12500, 22000, 20, 40),
-        ("Mulberry Silk Thread Cones Grade A", "SKU-TEX-034", cat3, sup5, "cone", 1850, 3400, 60, 120),
-        ("High-Tenacity Nylon Sewing Thread Box", "SKU-TEX-035", cat3, sup5, "box", 450, 920, 100, 200),
-        ("Textile Reactive Dye Powder Blue 25kg Drum", "SKU-TEX-036", cat3, sup1, "drum", 6800, 12500, 15, 30),
-        ("100% Combed Cotton Knitting Yarn 30s", "SKU-TEX-037", cat3, sup5, "bag", 3200, 5800, 40, 80),
-        ("Jacquard Weaving Shuttle Accessories Set", "SKU-TEX-038", cat3, sup5, "set", 1450, 2900, 25, 50),
-        ("Industrial Fabric Calendering Roller Sleeve", "SKU-TEX-039", cat3, sup6, "pcs", 18500, 34000, 4, 8),
-        ("Viscose Rayon Staple Fiber 50kg Pack", "SKU-TEX-040", cat3, sup5, "pack", 4500, 8200, 35, 70),
-
-        # Chemicals & Polymers (Surat & Vadodara Hub)
-        ("Surat High-Density Polyethylene HDPE Granules 25kg", "SKU-CHEM-041", cat4, sup1, "bag", 2400, 4200, 100, 200),
-        ("Polypropylene PP Injection Grade Powder 25kg", "SKU-CHEM-042", cat4, sup1, "bag", 2100, 3800, 120, 240),
-        ("Industrial Caustic Soda Flakes 99% 50kg", "SKU-CHEM-043", cat4, sup8, "bag", 1850, 3400, 80, 160),
-        ("Industrial Solvent Toluene 210L Drum", "SKU-CHEM-044", cat4, sup1, "drum", 14500, 24000, 15, 30),
-        ("Sulfuric Acid Commercial Grade 98% 50L Carboy", "SKU-CHEM-045", cat4, sup8, "carboy", 1600, 2950, 40, 80),
-        ("Liquid Epoxy Resin E-05 200kg Drum", "SKU-CHEM-046", cat4, sup1, "drum", 32000, 54000, 10, 20),
-        ("PVC Compound Rigid Grade 25kg Bag", "SKU-CHEM-047", cat4, sup1, "bag", 1950, 3500, 90, 180),
-        ("Titanium Dioxide Rutile Grade Pigment 25kg", "SKU-CHEM-048", cat4, sup8, "bag", 4800, 8900, 25, 50),
-        ("Acetone Technical Grade 200L Steel Drum", "SKU-CHEM-049", cat4, sup1, "drum", 12800, 21500, 12, 24),
-        ("Synthetic Rubber Nitrile NBR 25kg Bale", "SKU-CHEM-050", cat4, sup1, "bale", 3900, 7200, 30, 60),
-
-        # FMCG & Agri Commodities (Gujarat Agri Hub)
-        ("Saurashtra Groundnut Oil Refined 15L Tin", "SKU-AGRI-051", cat5, sup8, "tin", 1950, 2650, 80, 160),
-        ("Gujarat Premium Whole Cumin Seeds (Jeera) 50kg", "SKU-AGRI-052", cat5, sup8, "bag", 11500, 18500, 30, 60),
-        ("Basmati Export Quality Aged Rice 25kg Bag", "SKU-AGRI-053", cat5, sup8, "bag", 2400, 3800, 100, 200),
-        ("Refined M30 Sugar Grade 50kg Sack", "SKU-AGRI-054", cat5, sup8, "sack", 1900, 2450, 150, 300),
-        ("Pure Mustard Seeds Yellow 50kg Bag", "SKU-AGRI-055", cat5, sup8, "bag", 3800, 5900, 40, 80),
-        ("Castor Oil Commercial Grade 200L Drum", "SKU-AGRI-056", cat5, sup8, "drum", 18500, 29500, 15, 30),
-        ("Dehydrated Onion Powder Export Grade 25kg", "SKU-AGRI-057", cat5, sup8, "box", 2800, 4900, 35, 70),
-        ("Processed Cottonseed Cake Cattle Feed 50kg", "SKU-AGRI-058", cat5, sup8, "bag", 1450, 2100, 120, 240),
-
-        # Solar & Renewable Energy
-        ("Monocrystalline Solar Panel 550W Half-Cut", "SKU-SOLAR-059", cat6, sup3, "panel", 11500, 19500, 40, 80),
-        ("Grid-Tie Solar Inverter 10kW 3-Phase", "SKU-SOLAR-060", cat6, sup6, "pcs", 45000, 78000, 8, 16),
-        ("Lithium-Ion Solar Battery Storage Rack 48V 100Ah", "SKU-SOLAR-061", cat6, sup2, "pcs", 68000, 115000, 5, 10),
-        ("Solar Aluminium Mounting Structure 4-Panel Set", "SKU-SOLAR-062", cat6, sup3, "set", 3800, 7200, 30, 60),
-        ("Solar DC Cable 4mm Twin Core 100m Roll", "SKU-SOLAR-063", cat6, sup3, "roll", 4200, 7800, 25, 50),
-        ("Solar MC4 Connector Pair Box (100 Pairs)", "SKU-SOLAR-064", cat6, sup3, "box", 1800, 3500, 20, 40),
-
-        # Automotive Engineering (Sanand Auto Hub)
-        ("Ventilated Front Brake Disc Rotor Sanand Series", "SKU-AUTO-065", cat7, sup7, "pcs", 1450, 2850, 50, 100),
-        ("Alloy Wheel Rim 16 inch 5-Hole Spec", "SKU-AUTO-066", cat7, sup7, "pcs", 4200, 7800, 30, 60),
-        ("Automotive Radiator Assembly Aluminum", "SKU-AUTO-067", cat7, sup7, "pcs", 2800, 5400, 25, 50),
-        ("Engine Transmission Gear Shaft 5-Speed", "SKU-AUTO-068", cat7, sup7, "pcs", 3800, 7200, 15, 30),
-        ("Iridium Spark Plug Heavy Duty Set (Pack 4)", "SKU-AUTO-069", cat7, sup7, "pack", 850, 1650, 80, 160),
-        ("Automotive Shock Absorber Gas Filled", "SKU-AUTO-070", cat7, sup7, "pcs", 1950, 3800, 40, 80),
-
-        # Pharmaceuticals & Lifesciences (Vadodara Hub)
-        ("Active Pharma Ingredient Paracetamol Powder 25kg", "SKU-PHARM-071", cat8, sup4, "drum", 6500, 11500, 30, 60),
-        ("Amoxicillin Trihydrate Micronized Powder 25kg", "SKU-PHARM-072", cat8, sup4, "drum", 14500, 26000, 20, 40),
-        ("Sterile Normal Saline 0.9% 500ml Infusion Box (24)", "SKU-PHARM-073", cat8, sup4, "box", 480, 950, 150, 300),
-        ("Pharma PVC/PVDC Blister Packaging Film Roll", "SKU-PHARM-074", cat8, sup4, "roll", 8500, 15500, 15, 30),
-        ("Vitamin C Ascorbic Acid Granular API 25kg", "SKU-PHARM-075", cat8, sup4, "drum", 7200, 13800, 25, 50),
-        ("Empty Hard Gelatin Capsule Shell Size 0 Box (100k)", "SKU-PHARM-076", cat8, sup4, "box", 9800, 17500, 12, 24),
-    ]
-
-    # Generate additional scaled variations to reach 120+ unique items
-    all_products_data = list(product_templates)
-    base_count = len(product_templates)
-    
-    categories = [cat1, cat2, cat3, cat4, cat5, cat6, cat7, cat8]
-    suppliers = [sup1, sup2, sup3, sup4, sup5, sup6, sup7, sup8]
-
-    for i in range(base_count + 1, 128):
-        cat = categories[i % len(categories)]
-        sup = suppliers[i % len(suppliers)]
-        p_name = f"Industrial Spec Item Grade-{i:03d}"
-        p_sku = f"SKU-GUJ-{i:03d}"
-        unit = random.choice(["pcs", "kg", "meter", "roll", "box", "drum", "set"])
-        cost = random.randint(350, 18500)
-        sell = int(cost * random.uniform(1.4, 2.1))
-        min_st = random.randint(15, 80)
-        reorder = int(min_st * 1.8)
-        all_products_data.append((p_name, p_sku, cat, sup, unit, cost, sell, min_st, reorder))
-
-    product_objs = []
-    warehouses = [wh1, wh2, wh3, wh4, wh5]
-
-    for idx, item in enumerate(all_products_data):
-        name, sku, cat, sup, unit, cost, sell, min_st, reorder = item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7], item[8]
-        barcode = f"890987654{idx+100:03d}"
-        
-        p = Product(
-            name=name,
-            sku=sku,
-            barcode=barcode,
-            category_id=str(cat.id),
-            supplier_id=str(sup.id),
-            unit=unit,
-            cost_price=float(cost),
-            selling_price=float(sell),
-            min_stock_level=min_st,
-            reorder_point=reorder
-        ).save()
-        product_objs.append(p)
-
-        # Distribute stocks across all 5 Indian warehouses
-        for wh in warehouses:
-            # Create low stock for ~15% of items to trigger AI Alerts
-            if idx % 7 == 0 and wh == wh1:
-                qty = random.randint(2, min_st - 1)
-            else:
-                qty = random.randint(min_st + 10, min_st * 6)
-            
-            Stock(product_id=str(p.id), warehouse_id=str(wh.id), quantity=qty).save()
-
-    print(f"[+] Successfully Created {len(product_objs)} Products & Inventory Stocks!")
-
-    print("[*] Generating 35+ Indian Purchase Orders...")
-    po_statuses = ['APPROVED', 'RECEIVED', 'PENDING', 'CANCELLED']
-    for p_idx in range(1, 36):
-        sup = random.choice(suppliers)
-        wh = random.choice(warehouses)
-        status = random.choice(po_statuses)
-        po_date = datetime.datetime.utcnow() - datetime.timedelta(days=random.randint(1, 45))
-        
-        sampled_prods = random.sample(product_objs, random.randint(2, 5))
-        items = []
-        total_po = 0.0
-        for prod in sampled_prods:
-            order_q = random.randint(10, 100)
-            u_cost = prod.cost_price
-            sub_t = order_q * u_cost
-            total_po += sub_t
-            items.append(POItem(
-                product_id=str(prod.id),
-                product_name=prod.name,
-                quantity=order_q,
-                unit_price=u_cost,
-                total=sub_t
-            ))
-        
-        po = PurchaseOrder(
-            po_number=f"PO-GUJ-2026-{p_idx:04d}",
-            supplier_id=str(sup.id),
-            warehouse_id=str(wh.id),
-            status=status,
-            items=items,
-            total_amount=round(total_po, 2),
-            created_by_id=str(purchase_mgr.id),
-            created_at=po_date
+    # 1. Ensure Default Admin User exists
+    admin_user = User.objects(username="Sahil Patel").first()
+    if not admin_user:
+        admin_user = User(
+            username="Sahil Patel",
+            email="sahil@supplysense.com",
+            full_name="Sahil Patel",
+            role="Admin"
         )
-        po.save()
+        admin_user.set_password("Sah@2007")
+        admin_user.save()
 
-    print("[*] Generating 120+ Historical Sales Records for AI Analytics...")
-    now = datetime.datetime.utcnow()
-    customers = [
-        "Tata Motors Sanand Plant", "Adani Power Ltd Mundra", "Larsen & Toubro Hazira",
-        "Nirma Ltd Bhavnagar", "Zydus Lifesciences Ahmedabad", "Torrent Pharmaceuticals Vadodara",
-        "Gujarat Alkalies & Chemicals", "Welspun India Kutch", "Alembic Pharma Vadodara",
-        "Walk-in Industrial Buyer"
+    # 2. Warehouses (6 Facilities)
+    warehouses_data = [
+        {"name": "Central Mumbai Fulfillment Hub", "code": "WH-MUM-01", "location": "Bhiwandi, Mumbai, MH", "capacity": 50000, "contact": "+91 98200 11223"},
+        {"name": "Bengaluru Tech Park Depot", "code": "WH-BLR-02", "location": "Peenya Industrial Area, Bengaluru, KA", "capacity": 40000, "contact": "+91 98450 33445"},
+        {"name": "Delhi NCR Logistics Center", "code": "WH-DEL-03", "location": "Gurgaon Logistics Zone, Delhi NCR", "capacity": 60000, "contact": "+91 98110 55667"},
+        {"name": "Ahmedabad Industrial Gateway", "code": "WH-AMD-04", "location": "Sanand GIDC, Ahmedabad, GJ", "capacity": 35000, "contact": "+91 98790 77889"},
+        {"name": "Chennai Port Distribution Hub", "code": "WH-MAA-05", "location": "Ennore Port SEZ, Chennai, TN", "capacity": 45000, "contact": "+91 98400 99001"},
+        {"name": "Kolkata Eastern Regional Depot", "code": "WH-CCU-06", "location": "Dankuni Industrial Park, Kolkata, WB", "capacity": 30000, "contact": "+91 98300 22334"}
     ]
 
-    for day in range(90, 0, -1):
-        sale_date = now - datetime.timedelta(days=day)
-        num_sales = random.randint(1, 3)
-        for s_i in range(num_sales):
-            wh = random.choice(warehouses)
-            sampled_prods = random.sample(product_objs, random.randint(1, 4))
+    warehouses = []
+    for w in warehouses_data:
+        wh = Warehouse.objects(code=w["code"]).first()
+        if not wh:
+            wh = Warehouse(
+                name=w["name"], code=w["code"], location=w["location"],
+                capacity=w["capacity"], contact_number=w["contact"],
+                status="Active", manager_id=str(admin_user.id)
+            )
+            wh.save()
+        warehouses.append(wh)
 
-            items = []
-            total_s = 0.0
-            for prod in sampled_prods:
-                qty = random.randint(3, 25)
-                unit_p = prod.selling_price
-                subtotal = qty * unit_p
-                total_s += subtotal
-                items.append(SaleItem(
-                    product_id=str(prod.id),
-                    product_name=prod.name,
+    # 3. Categories (10 Categories)
+    categories_data = [
+        {"name": "Industrial Tools & Machinery", "code": "CAT-IND-TOOLS", "desc": "Power tools, CNC cutters, lathes, and precision measuring devices"},
+        {"name": "Electronics & Semiconductors", "code": "CAT-ELEC-SEMI", "desc": "Microcontrollers, ICs, relays, PCB boards, and sensors"},
+        {"name": "Raw Materials & Steel Alloys", "code": "CAT-RAW-STEEL", "desc": "Stainless steel sheets, aluminum bars, copper tubes, and wire coils"},
+        {"name": "Packaging & Shipping Supplies", "code": "CAT-PKG-SUP", "desc": "Corrugated boxes, bubble wrap, stretch film, and shipping pallets"},
+        {"name": "Safety & PPE Equipment", "code": "CAT-SAFETY-PPE", "desc": "Helmets, safety goggles, high-visibility vests, and steel-toe boots"},
+        {"name": "Office Tech & Consumables", "code": "CAT-OFFICE-TECH", "desc": "Thermal printers, barcode scanners, paper rolls, and labels"},
+        {"name": "Chemical Reagents & Solvents", "code": "CAT-CHEM-SOLV", "desc": "Industrial solvents, lubricants, adhesives, and degreasers"},
+        {"name": "Fasteners, Nuts & Bolts", "code": "CAT-FASTENERS", "desc": "High-tensile hex bolts, washers, anchor studs, and rivets"},
+        {"name": "Hydraulic & Pneumatic Valves", "code": "CAT-HYD-PNEU", "desc": "Hydraulic cylinders, pressure gauges, air hoses, and solenoid valves"},
+        {"name": "Electrical Cables & Wiring", "code": "CAT-ELEC-CABLES", "desc": "Heavy-duty armored cables, wire ducts, junction boxes, and terminal blocks"}
+    ]
+
+    categories = []
+    for c in categories_data:
+        cat = Category.objects(code=c["code"]).first()
+        if not cat:
+            cat = Category(name=c["name"], code=c["code"], description=c["desc"])
+            cat.save()
+        categories.append(cat)
+
+    # 4. Suppliers (12 Suppliers)
+    suppliers_data = [
+        {"name": "Apex Global Industrial Supplies", "code": "SUP-APEX-01", "contact": "Rajesh Sharma", "email": "contact@apexglobal.in", "phone": "+91 98210 12345", "lead_time": 5.0, "defect": 0.015, "fulfillment": 0.97, "score": 94.0},
+        {"name": "Titan Heavy Components Pvt Ltd", "code": "SUP-TITAN-02", "contact": "Anish Varma", "email": "sales@titancomp.com", "phone": "+91 98111 23456", "lead_time": 7.0, "defect": 0.020, "fulfillment": 0.94, "score": 90.0},
+        {"name": "Bharat Raw Materials Corporation", "code": "SUP-BHARAT-03", "contact": "Suresh Patel", "email": "orders@bharatraw.co.in", "phone": "+91 98790 34567", "lead_time": 10.0, "defect": 0.035, "fulfillment": 0.89, "score": 82.0},
+        {"name": "Horizon Electronics & Chips Co", "code": "SUP-HORIZON-04", "contact": "Meera Nair", "email": "supply@horizonelec.io", "phone": "+91 98450 45678", "lead_time": 4.0, "defect": 0.010, "fulfillment": 0.98, "score": 96.0},
+        {"name": "Supreme Packaging Solutions", "code": "SUP-SUPREME-05", "contact": "Vikram Singh", "email": "info@supremepkg.in", "phone": "+91 98300 56789", "lead_time": 3.0, "defect": 0.012, "fulfillment": 0.96, "score": 93.0},
+        {"name": "Metro Fasteners & Hardware Ltd", "code": "SUP-METRO-06", "contact": "Karan Gupta", "email": "sales@metrofasteners.com", "phone": "+91 98200 67890", "lead_time": 6.0, "defect": 0.025, "fulfillment": 0.92, "score": 87.0},
+        {"name": "Premier Chemical & Solvents Corp", "code": "SUP-PREMIER-07", "contact": "Deepak Mehta", "email": "order@premierchem.in", "phone": "+91 98980 78901", "lead_time": 8.0, "defect": 0.030, "fulfillment": 0.91, "score": 85.0},
+        {"name": "Precision Tools & Gauges India", "code": "SUP-PRECISION-08", "contact": "Pooja Reddy", "email": "support@precisiontools.in", "phone": "+91 98400 89012", "lead_time": 5.0, "defect": 0.018, "fulfillment": 0.95, "score": 91.0},
+        {"name": "Apex Polymer & Adhesives Ltd", "code": "SUP-POLYMER-09", "contact": "Amit Joshi", "email": "info@apexpolymer.co.in", "phone": "+91 98220 90123", "lead_time": 9.0, "defect": 0.040, "fulfillment": 0.86, "score": 79.0},
+        {"name": "National Hardware & Wire Works", "code": "SUP-NATIONAL-10", "contact": "Sunil Rao", "email": "sales@nationalhardware.in", "phone": "+91 98440 01234", "lead_time": 7.0, "defect": 0.022, "fulfillment": 0.93, "score": 88.0},
+        {"name": "Dynamic Pneumatics & Valves Co", "code": "SUP-DYNAMIC-11", "contact": "Gaurav Malhotra", "email": "contact@dynamicvalves.com", "phone": "+91 98100 12389", "lead_time": 6.0, "defect": 0.019, "fulfillment": 0.95, "score": 91.0},
+        {"name": "Vanguard Electricals & Cables", "code": "SUP-VANGUARD-12", "contact": "Arun Kumar", "email": "dispatch@vanguardelec.com", "phone": "+91 98310 23490", "lead_time": 4.5, "defect": 0.014, "fulfillment": 0.97, "score": 95.0}
+    ]
+
+    suppliers = []
+    for s in suppliers_data:
+        sup = Supplier.objects(code=s["code"]).first()
+        if not sup:
+            sup = Supplier(
+                name=s["name"], code=s["code"], contact_person=s["contact"],
+                email=s["email"], phone=s["phone"], address="Industrial Estate, Phase II, India",
+                lead_time_days=s["lead_time"], defect_rate=s["defect"],
+                fulfillment_rate=s["fulfillment"], reliability_score=s["score"],
+                status="Active"
+            )
+            sup.save()
+        suppliers.append(sup)
+
+    # 5. Seed 250 Products using Bulk Insert
+    product_templates = [
+        ("Heavy Duty Angle Grinder 850W", "CAT-IND-TOOLS", "pcs", 2100, 3200, 15, 30),
+        ("Digital Vernier Caliper 150mm", "CAT-IND-TOOLS", "pcs", 1400, 2200, 20, 35),
+        ("Rotary Hammer Drill Machine 26mm", "CAT-IND-TOOLS", "pcs", 4500, 6800, 10, 20),
+        ("Impact Torque Wrench 1/2 Inch", "CAT-IND-TOOLS", "pcs", 3800, 5600, 12, 25),
+        ("Industrial Carbide End Mill 10mm", "CAT-IND-TOOLS", "pcs", 850, 1450, 50, 80),
+        ("Precision Dial Indicator 0.01mm", "CAT-IND-TOOLS", "pcs", 1250, 1950, 25, 40),
+        ("Laser Distance Meter 60m Range", "CAT-IND-TOOLS", "pcs", 2800, 4200, 15, 30),
+        ("Pneumatic Die Grinder Kit", "CAT-IND-TOOLS", "pcs", 1950, 2900, 18, 32),
+        ("Hydraulic Crimping Tool 16-300mm2", "CAT-IND-TOOLS", "pcs", 5200, 7900, 8, 15),
+        ("Bench Vice Swivel Base 6 Inch", "CAT-IND-TOOLS", "pcs", 3100, 4600, 14, 25),
+        ("STM32 ARM Cortex-M4 Board", "CAT-ELEC-SEMI", "pcs", 650, 1100, 40, 75),
+        ("ESP32 Wi-Fi + BLE Microcontroller", "CAT-ELEC-SEMI", "pcs", 320, 580, 100, 180),
+        ("Optocoupler IC PC817 (Pack 100)", "CAT-ELEC-SEMI", "boxes", 450, 850, 30, 60),
+        ("Solid State Relay 40A 240VAC", "CAT-ELEC-SEMI", "pcs", 780, 1350, 25, 45),
+        ("Ultrasonic Distance Sensor HC-SR04", "CAT-ELEC-SEMI", "pcs", 120, 240, 80, 150),
+        ("OLED Display Module 0.96 Inch I2C", "CAT-ELEC-SEMI", "pcs", 210, 390, 60, 110),
+        ("Switching Power Supply 24V 10A", "CAT-ELEC-SEMI", "pcs", 1650, 2600, 20, 40),
+        ("Multilayer Ceramic Capacitor Kit", "CAT-ELEC-SEMI", "boxes", 890, 1500, 25, 45),
+        ("Step-Down Voltage Regulator LM2596", "CAT-ELEC-SEMI", "pcs", 95, 180, 120, 200),
+        ("Industrial Temperature Transducer PT100", "CAT-ELEC-SEMI", "pcs", 1450, 2350, 15, 30),
+        ("Stainless Steel Sheet 304 Grade 2mm", "CAT-RAW-STEEL", "sq.m", 1850, 2800, 30, 60),
+        ("Aluminum Extrusion Profile 40x40", "CAT-RAW-STEEL", "meters", 380, 620, 100, 200),
+        ("Seamless Copper Tube 1/2 Inch", "CAT-RAW-STEEL", "meters", 420, 680, 80, 150),
+        ("Cold Rolled Steel Coil 1.5mm", "CAT-RAW-STEEL", "kg", 85, 135, 500, 1000),
+        ("Brass Hexagonal Rod 25mm", "CAT-RAW-STEEL", "meters", 890, 1400, 40, 75),
+        ("Galvanized Iron Sheet 1mm", "CAT-RAW-STEEL", "sq.m", 620, 980, 50, 100),
+        ("Carbon Fiber Sheet 3mm 500x500", "CAT-RAW-STEEL", "pcs", 3400, 5200, 10, 20),
+        ("Titanium Grade 5 Bar 20mm", "CAT-RAW-STEEL", "meters", 4200, 6500, 8, 15),
+        ("Cast Iron Round Bar 50mm", "CAT-RAW-STEEL", "kg", 110, 175, 300, 600),
+        ("Structural Steel Angle Iron 50x50x5", "CAT-RAW-STEEL", "meters", 240, 390, 150, 300),
+        ("Heavy Duty Corrugated Box 5-Ply 18x12x12", "CAT-PKG-SUP", "pcs", 35, 65, 300, 600),
+        ("Anti-Static Bubble Wrap Roll 100m", "CAT-PKG-SUP", "rolls", 850, 1400, 20, 40),
+        ("Industrial Stretch Film Roll 500mm", "CAT-PKG-SUP", "rolls", 480, 780, 40, 80),
+        ("Heavy Duty Plastic Pallet 1200x1000", "CAT-PKG-SUP", "pcs", 2100, 3300, 25, 50),
+        ("Polypropylene Strapping Tape Roll", "CAT-PKG-SUP", "rolls", 620, 980, 30, 60),
+        ("Industrial Hard Hat Helmet ANSI", "CAT-SAFETY-PPE", "pcs", 280, 480, 50, 100),
+        ("Anti-Scratch Safety Spectacles Clear", "CAT-SAFETY-PPE", "pcs", 95, 180, 150, 300),
+        ("High-Visibility LED Reflective Vest", "CAT-SAFETY-PPE", "pcs", 220, 380, 80, 150),
+        ("Steel Toe Cap Safety Shoes S3", "CAT-SAFETY-PPE", "pairs", 1650, 2600, 30, 60),
+        ("Nitrile Chemical Resistant Gloves (Pack 100)", "CAT-SAFETY-PPE", "boxes", 550, 920, 40, 80),
+        ("Industrial Thermal Transfer Label Printer", "CAT-OFFICE-TECH", "pcs", 18500, 26500, 5, 10),
+        ("Wireless 2D Handheld Barcode Scanner", "CAT-OFFICE-TECH", "pcs", 3400, 5200, 15, 30),
+        ("Industrial Cleaning Degreaser Solvent 20L", "CAT-CHEM-SOLV", "cans", 2200, 3400, 20, 40),
+        ("Multi-Purpose Penetrating Lubricant Spray", "CAT-CHEM-SOLV", "cans", 180, 320, 100, 200),
+        ("Stainless Steel Hex Head Bolt M10x50 (Pack 100)", "CAT-FASTENERS", "boxes", 680, 1150, 40, 80),
+        ("High Tensile Grade 8.8 Hex Nut M12 (Pack 200)", "CAT-FASTENERS", "boxes", 520, 890, 50, 100),
+        ("Double Acting Hydraulic Cylinder 50x300mm", "CAT-HYD-PNEU", "pcs", 8500, 12800, 6, 12),
+        ("Pneumatic Solenoid Valve 5/2 Way 24VDC", "CAT-HYD-PNEU", "pcs", 1450, 2300, 25, 50),
+        ("Armored Copper Control Cable 4 Core 2.5mm2", "CAT-ELEC-CABLES", "meters", 145, 240, 200, 400),
+        ("Flexible PVC Conduit Pipe 25mm 50m Roll", "CAT-ELEC-CABLES", "rolls", 920, 1500, 25, 50)
+    ]
+
+    new_prod_objs = []
+    prod_counter = Product.objects.count() + 1
+    existing_skus = set(p.sku for p in Product.objects.only('sku'))
+
+    for base_name, cat_code, unit, cost, sell, min_lvl, reorder in product_templates:
+        cat_obj = next((c for c in categories if c.code == cat_code), categories[0])
+        variants = ["Base Model", "Standard Grade", "Heavy-Duty", "Premium Series", "Compact Variant"]
+
+        for var in variants:
+            sku = f"SKU-PROD-{prod_counter:04d}"
+            if sku not in existing_skus:
+                p_name = f"{base_name} ({var})" if var != "Base Model" else base_name
+                barcode = f"89012345{prod_counter:04d}"
+                sup_obj = random.choice(suppliers)
+                adj = 1.0 + (random.randint(-10, 15) / 100.0)
+                cost_p = round(cost * adj, 2)
+                sell_p = round(sell * adj, 2)
+
+                new_prod_objs.append(Product(
+                    name=p_name, sku=sku, barcode=barcode,
+                    description=f"{p_name} engineered for high reliability in industrial and logistics operations.",
+                    category_id=str(cat_obj.id), supplier_id=str(sup_obj.id),
+                    unit=unit, cost_price=cost_p, selling_price=sell_p,
+                    min_stock_level=min_lvl, reorder_point=reorder
+                ))
+            prod_counter += 1
+            if prod_counter > 250:
+                break
+        if prod_counter > 250:
+            break
+
+    if new_prod_objs:
+        Product.objects.insert(new_prod_objs)
+        print(f"Bulk inserted {len(new_prod_objs)} new Products")
+
+    all_products = list(Product.objects.all())
+    print(f"Total Products in DB: {len(all_products)}")
+
+    # 6. Bulk Insert Stock Quantities
+    existing_stock_keys = set(f"{s.product_id}_{s.warehouse_id}" for s in Stock.objects.only('product_id', 'warehouse_id'))
+    new_stocks = []
+
+    for p in all_products:
+        for wh in warehouses:
+            key = f"{str(p.id)}_{str(wh.id)}"
+            if key not in existing_stock_keys:
+                is_low = random.random() < 0.15
+                qty = random.randint(1, p.min_stock_level - 1) if is_low else random.randint(p.reorder_point + 10, p.reorder_point + 250)
+                new_stocks.append(Stock(
+                    product_id=str(p.id),
+                    warehouse_id=str(wh.id),
                     quantity=qty,
-                    unit_price=unit_p,
-                    total=subtotal
+                    batch_number=f"BATCH-2026-W{wh.code[-2:]}-{random.randint(100, 999)}",
+                    expiry_date=datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=random.randint(180, 720))
                 ))
 
-            inv_num = f"INV-GUJ-{90-day:03d}-{s_i+1}-{random.randint(1000, 9999)}"
-            s = Sale(
-                invoice_number=inv_num,
-                warehouse_id=str(wh.id),
-                customer_name=random.choice(customers),
-                items=items,
-                total_amount=round(total_s, 2),
-                payment_status='PAID',
-                recorded_by_id=str(sales_mgr.id),
-                created_at=sale_date
-            )
-            s.save()
+    if new_stocks:
+        Stock.objects.insert(new_stocks, load_bulk=False)
+        print(f"Bulk inserted {len(new_stocks)} Stock records")
 
-    print("[*] Creating AI Reorder & Supply Chain Notifications...")
-    Notification(
-        warehouse_id=str(wh1.id),
-        title="AI Reorder Alert: Hydraulic Pressure Relief Valve",
-        message="Hydraulic Pressure Relief Valve is down to 4 units in GIDC Mundra. Recommended Reorder: +25 units from BHEL.",
-        type="LOW_STOCK"
-    ).save()
+    # 7. Bulk Insert Purchase Orders (50 POs)
+    if PurchaseOrder.objects.count() < 50:
+        statuses = ['APPROVED', 'RECEIVED', 'PENDING', 'DRAFT']
+        new_pos = []
+        for i in range(1, 51):
+            po_num = f"PO-2026-{i:03d}"
+            if not PurchaseOrder.objects(po_number=po_num).first():
+                sup = random.choice(suppliers)
+                wh = random.choice(warehouses)
+                sample_prods = random.sample(all_products, random.randint(2, 5))
+                po_items = []
+                tot_amt = 0.0
+                for item_p in sample_prods:
+                    q = random.randint(20, 150)
+                    price = item_p.cost_price
+                    line_tot = round(q * price, 2)
+                    tot_amt += line_tot
+                    po_items.append(POItem(
+                        product_id=str(item_p.id),
+                        product_name=item_p.name,
+                        quantity=q,
+                        unit_price=price,
+                        total=line_tot
+                    ))
+                st = random.choice(statuses)
+                created_dt = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=random.randint(1, 60))
+                new_pos.append(PurchaseOrder(
+                    po_number=po_num, supplier_id=str(sup.id), warehouse_id=str(wh.id),
+                    items=po_items, total_amount=round(tot_amt, 2), status=st,
+                    created_by_id=str(admin_user.id),
+                    approved_by_id=str(admin_user.id) if st in ['APPROVED', 'RECEIVED'] else None,
+                    created_at=created_dt, updated_at=created_dt
+                ))
+        if new_pos:
+            PurchaseOrder.objects.insert(new_pos, load_bulk=False)
+            print(f"Bulk inserted {len(new_pos)} Purchase Orders")
 
-    Notification(
-        warehouse_id=str(wh2.id),
-        title="High Demand Horizon Forecasted",
-        message="Sanand Auto Hub predicts 42% demand spike in Brake Discs over next 14 days based on Random Forest regressor model.",
-        type="REORDER_RECOMMENDATION"
-    ).save()
+    # 8. Bulk Insert Sales Invoices (100 Sales)
+    if Sale.objects.count() < 100:
+        customers = [
+            "Tata Motors Supply Operations", "Reliance Industries Logistics",
+            "Larsen & Toubro Construction", "Mahindra & Mahindra Assembly",
+            "Godrej & Boyce Manufacturing", "Siemens India Electricals",
+            "Bosch Automotive Components", "ABB Power & Automation",
+            "Schneider Electric India", "Thermax Boiler Systems"
+        ]
+        new_sales = []
+        for i in range(1, 101):
+            inv_num = f"INV-2026-{i:03d}"
+            if not Sale.objects(invoice_number=inv_num).first():
+                wh = random.choice(warehouses)
+                cust = random.choice(customers)
+                sample_prods = random.sample(all_products, random.randint(2, 6))
+                sale_items = []
+                tot_amt = 0.0
+                for item_p in sample_prods:
+                    q = random.randint(5, 50)
+                    price = item_p.selling_price
+                    line_tot = round(q * price, 2)
+                    tot_amt += line_tot
+                    sale_items.append(SaleItem(
+                        product_id=str(item_p.id),
+                        product_name=item_p.name,
+                        quantity=q,
+                        unit_price=price,
+                        total=line_tot
+                    ))
+                created_dt = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=random.randint(1, 90))
+                new_sales.append(Sale(
+                    invoice_number=inv_num, warehouse_id=str(wh.id), customer_name=cust,
+                    items=sale_items, total_amount=round(tot_amt, 2),
+                    payment_status="PAID" if i % 10 != 0 else "PENDING",
+                    recorded_by_id=str(admin_user.id), created_at=created_dt
+                ))
+        if new_sales:
+            Sale.objects.insert(new_sales, load_bulk=False)
+            print(f"Bulk inserted {len(new_sales)} Sales Invoices")
 
-    Notification(
-        title="Supplier Reliability Updated",
-        message="Reliance Polymer & Chemical Industries reliability rating upgraded to 98.5% based on 0.005 defect rate.",
-        type="REORDER_RECOMMENDATION"
-    ).save()
+    print("\n[SUCCESS] MongoDB Data Seed Complete:")
+    print(f"   Total Products: {Product.objects.count()}")
+    print(f"   Total Warehouses: {Warehouse.objects.count()}")
+    print(f"   Total Suppliers: {Supplier.objects.count()}")
+    print(f"   Total Categories: {Category.objects.count()}")
+    print(f"   Total Stock Entries: {Stock.objects.count()}")
+    print(f"   Total Purchase Orders: {PurchaseOrder.objects.count()}")
+    print(f"   Total Sales Invoices: {Sale.objects.count()}")
 
-    print("[+] Database seeding completed successfully!")
-    print("--------------------------------------------------")
-    print("Seeded 7-Role Gujarat Supply Chain Credentials:")
-    print("  1. Admin:               Sahil Patel (Sah@2007)")
-    print("  2. Warehouse Manager:   Krish (krish123)")
-    print("  3. Inventory Manager:   Dhyan (dhyan123)")
-    print("  4. Stock Manager:       Shreya (shreya123)")
-    print("  5. Purchase Manager:    Aarav (aarav123)")
-    print("  6. Sales Manager:       Priya (priya123)")
-    print("  7. Warehouse Employee:  employee1 .. employee5 (emp123)")
-    print("--------------------------------------------------")
-
-if __name__ == '__main__':
-    seed_database()
+if __name__ == "__main__":
+    run_seed()

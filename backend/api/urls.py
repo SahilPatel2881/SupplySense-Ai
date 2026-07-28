@@ -11,10 +11,7 @@ from api.views.po_views import PurchaseOrderListCreateView, PurchaseOrderApprove
 from api.views.sales_views import SalesListCreateView, InvoicePDFDownloadView
 from api.views.report_views import CSVExportView
 from api.views.notification_views import NotificationListView
-from api.views.ai_views import (
-    DemandForecastView, SupplierReliabilityView, LowStockPredictionView,
-    EDAAnalyticsView, BusinessInsightsView
-)
+from api.views.dashboard_views import DashboardAnalyticsView, SidebarCountsView
 
 urlpatterns = [
     # Auth
@@ -67,10 +64,7 @@ urlpatterns = [
     path('notifications/', NotificationListView.as_view(), name='notifications-list'),
     path('notifications/<str:pk>/read/', NotificationListView.as_view(), name='notification-read'),
 
-    # AI & Analytics
-    path('ai/forecast-demand/', DemandForecastView.as_view(), name='forecast-demand'),
-    path('ai/supplier-reliability/', SupplierReliabilityView.as_view(), name='supplier-reliability'),
-    path('ai/low-stock-predict/', LowStockPredictionView.as_view(), name='low-stock-predict'),
-    path('ai/eda-analytics/', EDAAnalyticsView.as_view(), name='eda-analytics'),
-    path('ai/business-insights/', BusinessInsightsView.as_view(), name='business-insights'),
+    # Dashboard & Business Analytics
+    path('dashboard/stats/', DashboardAnalyticsView.as_view(), name='dashboard-stats'),
+    path('sidebar/counts/', SidebarCountsView.as_view(), name='sidebar-counts'),
 ]

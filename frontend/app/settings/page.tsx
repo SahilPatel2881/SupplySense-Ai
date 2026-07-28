@@ -24,7 +24,7 @@ export default function SettingsPage() {
   };
 
   const roleMatrix = [
-    { role: 'Admin', scope: 'All System Modules', reportsTo: 'Executive Board', focus: 'Company KPIs, AI Decision Center, Users, System Config' },
+    { role: 'Admin', scope: 'All System Modules', reportsTo: 'Executive Board', focus: 'Company KPIs, Executive Dashboard, Users, System Config' },
     { role: 'Warehouse Manager', scope: 'Assigned Warehouse', reportsTo: 'Admin', focus: 'Site Telemetry, Inventory, PO Stock Intake, Invoices' },
     { role: 'Inventory Manager', scope: 'Inventory Records', reportsTo: 'Warehouse Manager', focus: 'Stock Levels, Audit Records, Minimum Stock Thresholds' },
     { role: 'Stock Manager', scope: 'Physical Stock Floor', reportsTo: 'Inventory Manager', focus: 'Stock In/Out, Inter-Warehouse Transfers, Barcode Scanning' },

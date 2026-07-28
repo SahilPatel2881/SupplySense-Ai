@@ -164,53 +164,50 @@ export interface NotificationItem {
   created_at?: string;
 }
 
-export interface ForecastMetrics {
-  mae: number;
-  mse: number;
-  r2: number;
+export interface DashboardSummaryKPIs {
+  total_revenue: number;
+  total_products: number;
+  total_inventory: number;
+  total_warehouses: number;
+  total_suppliers: number;
+  total_purchase_orders: number;
+  total_sales_orders: number;
+  total_users: number;
+  low_stock_count: number;
+  ai_alerts_count?: number;
 }
 
-export interface ForecastData {
-  selected_model: string;
-  metrics: ForecastMetrics;
-  historical: {
-    days: number[];
-    actual: number[];
-  };
-  forecast: {
-    days: number[];
-    predicted: number[];
-  };
-  models_comparison?: Record<string, ForecastMetrics>;
+export interface LowStockItem {
+  product_id: string;
+  product_name: string;
+  sku: string;
+  unit: string;
+  current_stock: number;
+  min_stock_level: number;
+  reorder_point?: number;
+  supplier_name: string;
 }
 
-export interface SupplierEvalMetrics {
-  accuracy: number;
-  precision: number;
-  recall: number;
-  specificity: number;
-}
-
-export interface ConfusionMatrixData {
-  true_negative: number;
-  false_positive: number;
-  false_negative: number;
-  true_positive: number;
-  matrix: number[][];
-}
-
-export interface SupplierEvalData {
-  selected_model: string;
-  metrics: SupplierEvalMetrics;
-  confusion_matrix: ConfusionMatrixData;
-  classifiers_comparison?: Record<string, SupplierEvalMetrics>;
-}
-
-export interface BusinessInsightsData {
-  most_sold_product: { name: string; qty: number };
+export interface DashboardStats {
+  summary_kpis: DashboardSummaryKPIs;
+  best_selling_product: { name: string; qty: number };
   highest_revenue_product: { name: string; revenue: number };
   best_warehouse: { name: string; revenue: number };
-  fast_moving_category: string;
-  total_company_revenue: number;
-  total_orders: number;
+  fast_moving_category?: string;
+  low_stock_items: LowStockItem[];
+  recent_sales: Array<{
+    id: string;
+    invoice_number: string;
+    customer_name: string;
+    total_amount: number;
+    created_at?: string;
+  }>;
+  recent_purchase_orders: Array<{
+    id: string;
+    po_number: string;
+    supplier_name: string;
+    total_amount: number;
+    status: string;
+    created_at?: string;
+  }>;
 }

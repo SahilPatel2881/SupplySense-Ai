@@ -3,13 +3,13 @@ import './globals.css';
 import { AuthProvider } from '../context/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'SupplySense AI | Enterprise Warehouse & Supply Chain Intelligence',
-  description: 'AI-powered Warehouse & Supply Chain Management System featuring predictive demand forecasting, EOQ reorder calculations, supplier reliability ratings, and real-time inventory telemetry.',
-  keywords: ['Warehouse Management', 'Supply Chain AI', 'Demand Forecasting', 'Scikit-learn', 'Pandas EDA', 'Inventory Control'],
+  title: 'SupplySense ERP | Enterprise Warehouse & Supply Chain Management',
+  description: 'Enterprise Warehouse & Supply Chain Management System featuring real-time inventory control, purchase order tracking, sales billing, and multi-warehouse operations.',
+  keywords: ['Warehouse Management', 'Supply Chain', 'Inventory Control', 'Purchase Orders', 'Sales Invoices', 'ERP Console'],
   openGraph: {
-    title: 'SupplySense AI',
-    description: 'Predictive Supply Chain & Inventory Operations Powered by Machine Learning',
-    siteName: 'SupplySense AI',
+    title: 'SupplySense ERP',
+    description: 'Enterprise Supply Chain & Inventory Operations Console',
+    siteName: 'SupplySense ERP',
     type: 'website'
   }
 };
