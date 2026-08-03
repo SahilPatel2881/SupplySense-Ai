@@ -1,24 +1,24 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from api.permissions import IsAuthenticatedUser, IsAdminUserRole
+from api.permissions import CanAccessSuppliers
 from api.models import Supplier
 
 class SupplierListCreateView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanAccessSuppliers]
 
     def get(self, request):
         suppliers = Supplier.objects()
         return Response([s.to_dict() for s in suppliers], status=status.HTTP_200_OK)
 
     def post(self, request):
-        if request.user.role != 'Admin':
-            return Response({'error': 'Only Admins can register suppliers'}, status=status.HTTP_403_FORBIDDEN)
+        role = getattr(request.user, 'role', None)
+        if role not in ['Founder', 'Admin', 'PurchaseManager']:
+            return Response({'error': 'Only Founder, Admins, or Purchase Managers can register suppliers'}, status=status.HTTP_403_FORBIDDEN)
 
         name = request.data.get('name')
         code = request.data.get('code')
         contact_person = request.data.get('contact_person', '')
-        email = request.data.get('email', '')
         phone = request.data.get('phone', '')
         lead_time_days = float(request.data.get('lead_time_days', 7.0))
         defect_rate = float(request.data.get('defect_rate', 0.02))
@@ -27,7 +27,6 @@ class SupplierListCreateView(APIView):
         if not name or not code:
             return Response({'error': 'Supplier name and code are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Calculate initial reliability score
         score = (fulfillment_rate * 50.0) + (max(0, 14 - lead_time_days) / 14.0 * 30.0) + (max(0, 0.1 - defect_rate) / 0.1 * 20.0)
         reliability_score = round(min(100.0, max(0.0, score)), 1)
 
@@ -35,7 +34,6 @@ class SupplierListCreateView(APIView):
             name=name,
             code=code,
             contact_person=contact_person,
-            email=email,
             phone=phone,
             address=request.data.get('address', ''),
             lead_time_days=lead_time_days,
@@ -48,7 +46,7 @@ class SupplierListCreateView(APIView):
 
 
 class SupplierDetailView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanAccessSuppliers]
 
     def get_object(self, pk):
         return Supplier.objects(id=pk).first()
@@ -60,14 +58,15 @@ class SupplierDetailView(APIView):
         return Response(sup.to_dict(), status=status.HTTP_200_OK)
 
     def put(self, request, pk):
-        if request.user.role != 'Admin':
-            return Response({'error': 'Only Admins can update supplier details'}, status=status.HTTP_403_FORBIDDEN)
+        role = getattr(request.user, 'role', None)
+        if role not in ['Founder', 'Admin', 'PurchaseManager']:
+            return Response({'error': 'Only Founder, Admins, or Purchase Managers can update supplier details'}, status=status.HTTP_403_FORBIDDEN)
 
         sup = self.get_object(pk)
         if not sup:
             return Response({'error': 'Supplier not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        for field in ['name', 'contact_person', 'email', 'phone', 'address', 'status']:
+        for field in ['name', 'contact_person', 'phone', 'address', 'status']:
             if field in request.data:
                 setattr(sup, field, request.data[field])
 
@@ -78,7 +77,6 @@ class SupplierDetailView(APIView):
         if 'fulfillment_rate' in request.data:
             sup.fulfillment_rate = float(request.data['fulfillment_rate'])
 
-        # Recalculate reliability score
         score = (sup.fulfillment_rate * 50.0) + (max(0, 14 - sup.lead_time_days) / 14.0 * 30.0) + (max(0, 0.1 - sup.defect_rate) / 0.1 * 20.0)
         sup.reliability_score = round(min(100.0, max(0.0, score)), 1)
         sup.save()
@@ -86,8 +84,9 @@ class SupplierDetailView(APIView):
         return Response(sup.to_dict(), status=status.HTTP_200_OK)
 
     def delete(self, request, pk):
-        if request.user.role != 'Admin':
-            return Response({'error': 'Only Admins can delete suppliers'}, status=status.HTTP_403_FORBIDDEN)
+        role = getattr(request.user, 'role', None)
+        if role not in ['Founder', 'Admin', 'PurchaseManager']:
+            return Response({'error': 'Only Founder, Admins, or Purchase Managers can delete suppliers'}, status=status.HTTP_403_FORBIDDEN)
 
         sup = self.get_object(pk)
         if not sup:

@@ -25,8 +25,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (typeof window !== 'undefined' && error.response && (error.response.status === 401 || error.response.status === 403)) {
-      const isAuthPath = error.config?.url?.includes('/auth/login');
+    if (typeof window !== 'undefined' && error.response && error.response.status === 401) {
+      const isAuthPath = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/verify-otp');
       if (!isAuthPath) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');

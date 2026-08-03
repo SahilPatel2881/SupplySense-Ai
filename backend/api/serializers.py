@@ -3,7 +3,7 @@ from rest_framework import serializers
 class UserSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     username = serializers.CharField(required=True)
-    email = serializers.EmailField(required=True)
+    email = serializers.EmailField(required=False, allow_blank=True, default="")
     password = serializers.CharField(write_only=True, required=False)
     full_name = serializers.CharField(required=False, allow_blank=True)
     role = serializers.ChoiceField(choices=['Admin', 'WarehouseManager'], default='WarehouseManager')

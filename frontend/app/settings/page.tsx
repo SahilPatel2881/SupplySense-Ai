@@ -7,6 +7,7 @@ import { Settings, ShieldCheck, Database, Sliders, CheckCircle2, AlertTriangle }
 
 export default function SettingsPage() {
   const { user, isAdmin } = useAuth();
+  const isFounderOrAdmin = ['Founder', 'Admin'].includes(user?.role || '');
   const [saved, setSaved] = useState(false);
   const [config, setConfig] = useState({
     defaultReorderDays: 30,
@@ -19,19 +20,35 @@ export default function SettingsPage() {
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFounderOrAdmin) {
+      alert('Only Founder and Admins can update system settings.');
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const roleMatrix = [
-    { role: 'Admin', scope: 'All System Modules', reportsTo: 'Executive Board', focus: 'Company KPIs, Executive Dashboard, Users, System Config' },
-    { role: 'Warehouse Manager', scope: 'Assigned Warehouse', reportsTo: 'Admin', focus: 'Site Telemetry, Inventory, PO Stock Intake, Invoices' },
-    { role: 'Inventory Manager', scope: 'Inventory Records', reportsTo: 'Warehouse Manager', focus: 'Stock Levels, Audit Records, Minimum Stock Thresholds' },
-    { role: 'Stock Manager', scope: 'Physical Stock Floor', reportsTo: 'Inventory Manager', focus: 'Stock In/Out, Inter-Warehouse Transfers, Barcode Scanning' },
-    { role: 'Purchase Manager', scope: 'Procurement Pipeline', reportsTo: 'Admin', focus: 'Suppliers, Purchase Orders, Quotations & Delivery Track' },
-    { role: 'Sales Manager', scope: 'Revenue & Billing', reportsTo: 'Admin', focus: 'Point-of-Sale Transactions, PDF Invoices, Customer Records' },
-    { role: 'Warehouse Employee', scope: 'Floor Operations', reportsTo: 'Warehouse Manager', focus: 'Receiving Goods, Order Picking, Packing & Scanner Checks' }
+    { role: 'Founder / Admin', scope: 'All Modules', reportsTo: 'Executive Board', focus: 'Full system control across all 13 modules' },
+    { role: 'Warehouse Manager', scope: 'Assigned Warehouse', reportsTo: 'Founder / Admin', focus: 'Dashboard, Assigned WH, Categories (View), Products (View), Suppliers (View), Inventory, POs (View/Receive), Sales, WH Reports, Low Stock AI' },
+    { role: 'Inventory Manager', scope: 'Inventory System-wide', reportsTo: 'Founder / Admin', focus: 'Dashboard, Categories (View), Product Catalog, Inventory, POs (View), Inventory Reports, Low Stock AI' },
+    { role: 'Stock Manager', scope: 'Physical Floor Stock', reportsTo: 'Inventory Manager', focus: 'Daily Stock In/Out, Inter-Warehouse Transfers, Barcode Scans & Stock Movements' },
+    { role: 'Purchase Manager', scope: 'Procurement Pipeline', reportsTo: 'Founder / Admin', focus: 'Dashboard, Products (View), Suppliers, Inventory (Receive), Purchase Orders, Purchase Reports' },
+    { role: 'Sales Manager', scope: 'Revenue & Sales', reportsTo: 'Founder / Admin', focus: 'Dashboard, Categories (View), Products (View), Inventory (View), Sales Management, Sales Reports, Sales Summary AI' },
+    { role: 'Warehouse Employee', scope: 'Assigned Floor', reportsTo: 'Warehouse Manager', focus: 'Dashboard, Assigned WH Inventory (Limited), Notifications' },
   ];
+
+  if (!isFounderOrAdmin) {
+    return (
+      <DashboardLayout>
+        <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-3 my-12 max-w-xl mx-auto">
+          <ShieldCheck className="w-12 h-12 text-rose-500 mx-auto" />
+          <h2 className="text-xl font-bold text-slate-900">Access Restricted</h2>
+          <p className="text-xs text-slate-500">System Settings is restricted strictly to Founder and Admin users. Your role ({user?.role}) does not have permission to modify system configuration.</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -68,7 +85,8 @@ export default function SettingsPage() {
                 type="number"
                 value={config.defaultReorderDays}
                 onChange={(e) => setConfig({ ...config, defaultReorderDays: parseInt(e.target.value) || 30 })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl font-bold"
+                style={{ color: '#0f172a', backgroundColor: '#ffffff', WebkitTextFillColor: '#0f172a', opacity: 1, fontWeight: 700 }}
+                className="w-full p-2.5 border border-slate-300 rounded-xl font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
               />
             </div>
 
@@ -79,7 +97,8 @@ export default function SettingsPage() {
                 step="0.05"
                 value={config.serviceLevelZ}
                 onChange={(e) => setConfig({ ...config, serviceLevelZ: parseFloat(e.target.value) || 1.65 })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl font-mono"
+                style={{ color: '#0f172a', backgroundColor: '#ffffff', WebkitTextFillColor: '#0f172a', opacity: 1, fontWeight: 700 }}
+                className="w-full p-2.5 border border-slate-300 rounded-xl font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
               />
             </div>
 
@@ -89,7 +108,8 @@ export default function SettingsPage() {
                 type="number"
                 value={config.lowStockThresholdDefault}
                 onChange={(e) => setConfig({ ...config, lowStockThresholdDefault: parseInt(e.target.value) || 20 })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl font-bold"
+                style={{ color: '#0f172a', backgroundColor: '#ffffff', WebkitTextFillColor: '#0f172a', opacity: 1, fontWeight: 700 }}
+                className="w-full p-2.5 border border-slate-300 rounded-xl font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
               />
             </div>
 

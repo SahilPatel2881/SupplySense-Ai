@@ -1,11 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from api.permissions import IsAuthenticatedUser, IsAdminUserRole
+from api.permissions import CanAccessProducts
 from api.models import Product, Stock, Category, Supplier, Warehouse
 
 class ProductListCreateView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanAccessProducts]
 
     def get(self, request):
         user = request.user
@@ -30,14 +30,14 @@ class ProductListCreateView(APIView):
 
             d = p.to_dict()
             
-            # Fetch Category & Supplier names
             cat = Category.objects(id=p.category_id).first()
             sup = Supplier.objects(id=p.supplier_id).first()
             d['category_name'] = cat.name if cat else "N/A"
             d['supplier_name'] = sup.name if sup else "N/A"
 
             # Fetch stock quantity for assigned warehouse or total
-            if user.role != 'Admin' and user.assigned_warehouse_id:
+            role = getattr(user, 'role', None)
+            if role not in ['Founder', 'Admin'] and user.assigned_warehouse_id:
                 st = Stock.objects(product_id=str(p.id), warehouse_id=str(user.assigned_warehouse_id)).first()
                 d['total_stock'] = st.quantity if st else 0
             else:
@@ -50,8 +50,9 @@ class ProductListCreateView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        if request.user.role != 'Admin':
-            return Response({'error': 'Only Admins can create new products'}, status=status.HTTP_403_FORBIDDEN)
+        role = getattr(request.user, 'role', None)
+        if role not in ['Founder', 'Admin', 'InventoryManager']:
+            return Response({'error': 'Only Founder, Admins, or Inventory Managers can create new products'}, status=status.HTTP_403_FORBIDDEN)
 
         name = request.data.get('name')
         sku = request.data.get('sku')
@@ -90,7 +91,7 @@ class ProductListCreateView(APIView):
 
 
 class ProductDetailView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanAccessProducts]
 
     def get_object(self, pk):
         return Product.objects(id=pk).first()
@@ -106,7 +107,6 @@ class ProductDetailView(APIView):
         d['category_name'] = cat.name if cat else "N/A"
         d['supplier_name'] = sup.name if sup else "N/A"
 
-        # Stock breakdown across warehouses
         stocks = Stock.objects(product_id=str(p.id))
         warehouse_stocks = []
         for s in stocks:
@@ -123,8 +123,9 @@ class ProductDetailView(APIView):
         return Response(d, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
-        if request.user.role != 'Admin':
-            return Response({'error': 'Only Admins can modify product details'}, status=status.HTTP_403_FORBIDDEN)
+        role = getattr(request.user, 'role', None)
+        if role not in ['Founder', 'Admin', 'InventoryManager']:
+            return Response({'error': 'Only Founder, Admins, or Inventory Managers can modify product details'}, status=status.HTTP_403_FORBIDDEN)
 
         p = self.get_object(pk)
         if not p:
@@ -147,8 +148,9 @@ class ProductDetailView(APIView):
         return Response(p.to_dict(), status=status.HTTP_200_OK)
 
     def delete(self, request, pk):
-        if request.user.role != 'Admin':
-            return Response({'error': 'Only Admins can delete products'}, status=status.HTTP_403_FORBIDDEN)
+        role = getattr(request.user, 'role', None)
+        if role not in ['Founder', 'Admin', 'InventoryManager']:
+            return Response({'error': 'Only Founder, Admins, or Inventory Managers can delete products'}, status=status.HTTP_403_FORBIDDEN)
 
         p = self.get_object(pk)
         if not p:

@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   Receipt,
   FileText,
+  Sparkles,
   Building,
   Settings
 } from 'lucide-react';
@@ -53,70 +54,77 @@ const Sidebar: React.FC = () => {
       name: 'Dashboard',
       path: '/dashboard',
       icon: LayoutDashboard,
-      roles: ['Admin', 'WarehouseManager', 'InventoryManager', 'StockManager', 'PurchaseManager', 'SalesManager', 'WarehouseEmployee'],
+      roles: ['Founder', 'Admin', 'WarehouseManager', 'InventoryManager', 'StockManager', 'PurchaseManager', 'SalesManager', 'WarehouseEmployee'],
       countKey: null
     },
     {
       name: 'Inventory Stock',
       path: '/inventory',
       icon: Boxes,
-      roles: ['Admin', 'WarehouseManager', 'InventoryManager', 'StockManager', 'WarehouseEmployee'],
+      roles: ['Founder', 'Admin', 'WarehouseManager', 'InventoryManager', 'StockManager', 'PurchaseManager', 'SalesManager', 'WarehouseEmployee'],
       countKey: 'inventory' as keyof SidebarCounts
     },
     {
       name: 'Product Catalog',
       path: '/products',
       icon: Package,
-      roles: ['Admin', 'InventoryManager'],
+      roles: ['Founder', 'Admin', 'InventoryManager', 'WarehouseManager', 'PurchaseManager', 'SalesManager'],
       countKey: 'products' as keyof SidebarCounts
     },
     {
       name: 'Warehouses',
       path: '/warehouses',
       icon: Building2,
-      roles: ['Admin', 'WarehouseManager'],
+      roles: ['Founder', 'Admin', 'WarehouseManager', 'StockManager', 'WarehouseEmployee'],
       countKey: 'warehouses' as keyof SidebarCounts
     },
     {
       name: 'Suppliers',
       path: '/suppliers',
       icon: Truck,
-      roles: ['Admin', 'PurchaseManager'],
+      roles: ['Founder', 'Admin', 'PurchaseManager', 'WarehouseManager'],
       countKey: 'suppliers' as keyof SidebarCounts
     },
     {
       name: 'Purchase Orders',
       path: '/purchase-orders',
       icon: ShoppingCart,
-      roles: ['Admin', 'PurchaseManager'],
+      roles: ['Founder', 'Admin', 'PurchaseManager', 'WarehouseManager', 'InventoryManager'],
       countKey: 'purchase_orders' as keyof SidebarCounts
     },
     {
       name: 'Sales & Invoices',
       path: '/sales',
       icon: Receipt,
-      roles: ['Admin', 'SalesManager'],
+      roles: ['Founder', 'Admin', 'SalesManager', 'WarehouseManager'],
       countKey: 'sales' as keyof SidebarCounts
     },
     {
       name: 'Reports & Export',
       path: '/reports',
       icon: FileText,
-      roles: ['Admin', 'WarehouseManager', 'InventoryManager', 'PurchaseManager', 'SalesManager'],
+      roles: ['Founder', 'Admin', 'WarehouseManager', 'InventoryManager', 'PurchaseManager', 'SalesManager'],
       countKey: 'reports' as keyof SidebarCounts
+    },
+    {
+      name: 'AI Analytics & EDA',
+      path: '/analytics',
+      icon: Sparkles,
+      roles: ['Founder', 'Admin', 'WarehouseManager', 'InventoryManager', 'StockManager', 'PurchaseManager', 'SalesManager'],
+      countKey: null
     },
     {
       name: 'User Management',
       path: '/users',
       icon: Users,
-      roles: ['Admin'],
+      roles: ['Founder', 'Admin'],
       countKey: 'users' as keyof SidebarCounts
     },
     {
       name: 'System Settings',
       path: '/settings',
       icon: Settings,
-      roles: ['Admin', 'WarehouseManager'],
+      roles: ['Founder', 'Admin'],
       countKey: null
     },
   ];

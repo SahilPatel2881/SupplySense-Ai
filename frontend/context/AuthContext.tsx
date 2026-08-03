@@ -8,7 +8,6 @@ interface LoginResult {
   success: boolean;
   requireOTP?: boolean;
   username?: string;
-  maskedEmail?: string;
   demoOTP?: string;
   error?: string;
   locked?: boolean;
@@ -33,6 +32,7 @@ interface AuthContextType {
   logout: () => void;
   refreshProfile: () => Promise<void>;
   isAdmin: boolean;
+  isFounder: boolean;
   isWarehouseManager: boolean;
   isInventoryManager: boolean;
   isStockManager: boolean;
@@ -71,7 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           success: true,
           requireOTP: true,
           username: res.data.username,
-          maskedEmail: res.data.masked_email,
           demoOTP: res.data.demo_otp
         };
       }
@@ -163,7 +162,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     resendOTP,
     logout,
     refreshProfile,
-    isAdmin: role === 'Admin',
+    isAdmin: role === 'Founder' || role === 'Admin',
+    isFounder: role === 'Founder',
     isWarehouseManager: role === 'WarehouseManager',
     isInventoryManager: role === 'InventoryManager',
     isStockManager: role === 'StockManager',

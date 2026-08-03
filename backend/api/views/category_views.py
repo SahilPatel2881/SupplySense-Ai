@@ -1,19 +1,20 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from api.permissions import IsAuthenticatedUser, IsAdminUserRole
+from api.permissions import CanAccessCategories
 from api.models import Category
 
 class CategoryListCreateView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanAccessCategories]
 
     def get(self, request):
         categories = Category.objects()
         return Response([c.to_dict() for c in categories], status=status.HTTP_200_OK)
 
     def post(self, request):
-        if request.user.role != 'Admin':
-            return Response({'error': 'Only Admins can create product categories'}, status=status.HTTP_403_FORBIDDEN)
+        role = getattr(request.user, 'role', None)
+        if role not in ['Founder', 'Admin']:
+            return Response({'error': 'Only Founder or Admins can create product categories'}, status=status.HTTP_403_FORBIDDEN)
 
         name = request.data.get('name')
         code = request.data.get('code')
@@ -31,7 +32,7 @@ class CategoryListCreateView(APIView):
 
 
 class CategoryDetailView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanAccessCategories]
 
     def get_object(self, pk):
         return Category.objects(id=pk).first()
@@ -43,8 +44,9 @@ class CategoryDetailView(APIView):
         return Response(cat.to_dict(), status=status.HTTP_200_OK)
 
     def put(self, request, pk):
-        if request.user.role != 'Admin':
-            return Response({'error': 'Only Admins can modify categories'}, status=status.HTTP_403_FORBIDDEN)
+        role = getattr(request.user, 'role', None)
+        if role not in ['Founder', 'Admin']:
+            return Response({'error': 'Only Founder or Admins can modify categories'}, status=status.HTTP_403_FORBIDDEN)
 
         cat = self.get_object(pk)
         if not cat:
@@ -59,8 +61,9 @@ class CategoryDetailView(APIView):
         return Response(cat.to_dict(), status=status.HTTP_200_OK)
 
     def delete(self, request, pk):
-        if request.user.role != 'Admin':
-            return Response({'error': 'Only Admins can delete categories'}, status=status.HTTP_403_FORBIDDEN)
+        role = getattr(request.user, 'role', None)
+        if role not in ['Founder', 'Admin']:
+            return Response({'error': 'Only Founder or Admins can delete categories'}, status=status.HTTP_403_FORBIDDEN)
 
         cat = self.get_object(pk)
         if not cat:

@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '../../lib/api';
 import {
   Lock,
   User as UserIcon,
   ArrowRight,
   ShieldCheck,
+  Building,
   Building2,
   Boxes,
   Truck,
@@ -20,7 +22,9 @@ import {
   Clock,
   RefreshCw,
   AlertTriangle,
-  ChevronLeft
+  ChevronLeft,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface RolePreset {
@@ -38,10 +42,10 @@ interface RolePreset {
 
 const mainRoles: RolePreset[] = [
   {
-    id: 'admin',
-    roleName: 'Admin',
-    title: 'Admin',
-    subtitle: 'Executive Access',
+    id: 'founder',
+    roleName: 'Founder',
+    title: '👑 Admin',
+    subtitle: 'Global Unrestricted Access',
     username: 'Sahil Patel',
     icon: ShieldCheck,
     textClass: 'text-amber-400',
@@ -52,9 +56,9 @@ const mainRoles: RolePreset[] = [
   {
     id: 'wh_manager',
     roleName: 'Warehouse Manager',
-    title: 'Warehouse Mgr',
-    subtitle: 'CDC Operations',
-    username: 'Krish',
+    title: '🏭 Warehouse Manager',
+    subtitle: 'Facility Operations',
+    username: 'war_mgr1',
     icon: Building2,
     textClass: 'text-blue-400',
     borderClass: 'border-slate-700/80',
@@ -64,9 +68,9 @@ const mainRoles: RolePreset[] = [
   {
     id: 'inv_manager',
     roleName: 'Inventory Manager',
-    title: 'Inventory Mgr',
-    subtitle: 'Audits & Accuracy',
-    username: 'Dhyan',
+    title: 'Inventory Manager',
+    subtitle: 'Audits & Stock Levels',
+    username: 'inv_mgr1',
     icon: Boxes,
     textClass: 'text-emerald-400',
     borderClass: 'border-slate-700/80',
@@ -78,7 +82,7 @@ const mainRoles: RolePreset[] = [
     roleName: 'Stock Manager',
     title: 'Stock Manager',
     subtitle: 'In/Out & Transfers',
-    username: 'Shreya',
+    username: 'stk_mgr1',
     icon: Package,
     textClass: 'text-purple-400',
     borderClass: 'border-slate-700/80',
@@ -88,9 +92,9 @@ const mainRoles: RolePreset[] = [
   {
     id: 'purchase_manager',
     roleName: 'Purchase Manager',
-    title: 'Purchase Mgr',
+    title: 'Purchase Manager',
     subtitle: 'Suppliers & POs',
-    username: 'Aarav',
+    username: 'pur_mgr1',
     icon: Truck,
     textClass: 'text-cyan-400',
     borderClass: 'border-slate-700/80',
@@ -102,70 +106,19 @@ const mainRoles: RolePreset[] = [
     roleName: 'Sales Manager',
     title: 'Sales Manager',
     subtitle: 'Sales & Billing',
-    username: 'Priya',
+    username: 'sal_mgr1',
     icon: Receipt,
     textClass: 'text-teal-400',
     borderClass: 'border-slate-700/80',
     activeRing: 'ring-2 ring-teal-500/80 border-teal-500/80',
     activeBg: 'bg-teal-500/15',
-  }
-];
-
-const employeeRoles: RolePreset[] = [
-  {
-    id: 'emp1',
-    roleName: 'Warehouse Employee 1',
-    title: 'Employee 1',
-    subtitle: 'Floor Ops',
-    username: 'employee1',
-    icon: UserCheck,
-    textClass: 'text-indigo-400',
-    borderClass: 'border-slate-700/80',
-    activeRing: 'ring-2 ring-indigo-500/80 border-indigo-500/80',
-    activeBg: 'bg-indigo-500/15',
   },
   {
-    id: 'emp2',
-    roleName: 'Warehouse Employee 2',
-    title: 'Employee 2',
-    subtitle: 'Floor Ops',
-    username: 'employee2',
-    icon: UserCheck,
-    textClass: 'text-indigo-400',
-    borderClass: 'border-slate-700/80',
-    activeRing: 'ring-2 ring-indigo-500/80 border-indigo-500/80',
-    activeBg: 'bg-indigo-500/15',
-  },
-  {
-    id: 'emp3',
-    roleName: 'Warehouse Employee 3',
-    title: 'Employee 3',
-    subtitle: 'Floor Ops',
-    username: 'employee3',
-    icon: UserCheck,
-    textClass: 'text-indigo-400',
-    borderClass: 'border-slate-700/80',
-    activeRing: 'ring-2 ring-indigo-500/80 border-indigo-500/80',
-    activeBg: 'bg-indigo-500/15',
-  },
-  {
-    id: 'emp4',
-    roleName: 'Warehouse Employee 4',
-    title: 'Employee 4',
-    subtitle: 'Floor Ops',
-    username: 'employee4',
-    icon: UserCheck,
-    textClass: 'text-indigo-400',
-    borderClass: 'border-slate-700/80',
-    activeRing: 'ring-2 ring-indigo-500/80 border-indigo-500/80',
-    activeBg: 'bg-indigo-500/15',
-  },
-  {
-    id: 'emp5',
-    roleName: 'Warehouse Employee 5',
-    title: 'Employee 5',
-    subtitle: 'Floor Ops',
-    username: 'employee5',
+    id: 'wh_employee',
+    roleName: 'Warehouse Employee',
+    title: 'Warehouse Employee',
+    subtitle: 'Floor Operations & Staff',
+    username: 'emp1_wh1',
     icon: UserCheck,
     textClass: 'text-indigo-400',
     borderClass: 'border-slate-700/80',
@@ -175,46 +128,76 @@ const employeeRoles: RolePreset[] = [
 ];
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState('Sahil Patel');
   const [password, setPassword] = useState('');
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
-  
+  const [showPassword, setShowPassword] = useState(false);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>('founder');
+
+  const [publicUsers, setPublicUsers] = useState<{ id: string; username: string; full_name: string; role: string }[]>([]);
+  const [mainRolesList, setMainRolesList] = useState<RolePreset[]>(mainRoles);
+
+  useEffect(() => {
+    const fetchPublicUsers = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/public-users/`);
+        if (res.ok) {
+          const users = await res.json();
+          if (Array.isArray(users) && users.length > 0) {
+            setPublicUsers(users);
+            const adminUser = users.find((u: any) => (u.role || '').toLowerCase().includes('admin'));
+            if (adminUser) {
+              setUsername(adminUser.username);
+              setPassword('');
+              setSelectedRoleId('founder');
+            } else if (users[0]) {
+              setUsername(users[0].username);
+              setPassword('');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch public users:', err);
+      }
+    };
+
+    fetchPublicUsers();
+  }, []);
+
   // 2FA Step State
   const [step, setStep] = useState<'LOGIN' | 'VERIFYING' | 'OTP' | 'LOCKED'>('LOGIN');
   const [verificationBanner, setVerificationBanner] = useState(false);
-  const [maskedEmail, setMaskedEmail] = useState('s********@gmail.com');
   const [activeDemoOTP, setActiveDemoOTP] = useState<string | null>(null);
-  
+
   // 6-digit OTP Inputs
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Timer & Locks
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
-  const [otpError, setOtpError] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
-  const [lockTimeRemaining, setLockTimeRemaining] = useState(600); // 10 minutes = 600s
+  const [lockTimeRemaining, setLockTimeRemaining] = useState(0);
 
-  const { login, verifyOTP, resendOTP, loading, error: authError } = useAuth();
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
+  const { login, verifyOTP, resendOTP } = useAuth();
 
   // Resend Timer Countdown
   useEffect(() => {
-    let interval: any;
-    if (step === 'OTP' && resendTimer > 0) {
-      interval = setInterval(() => {
+    let timer: NodeJS.Timeout;
+    if (step === 'OTP' && resendTimer > 0 && !canResend) {
+      timer = setInterval(() => {
         setResendTimer((prev) => prev - 1);
       }, 1000);
     } else if (resendTimer === 0) {
       setCanResend(true);
     }
-    return () => clearInterval(interval);
-  }, [step, resendTimer]);
+    return () => clearInterval(timer);
+  }, [step, resendTimer, canResend]);
 
   // Account Lock Timer Countdown
   useEffect(() => {
-    let interval: any;
+    let interval: NodeJS.Timeout;
     if (step === 'LOCKED' && lockTimeRemaining > 0) {
       interval = setInterval(() => {
         setLockTimeRemaining((prev) => prev - 1);
@@ -227,14 +210,19 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [step, lockTimeRemaining]);
 
+  const handleUsernameChange = (newVal: string) => {
+    setUsername(newVal);
+  };
+
   const handleSelectRolePreset = (preset: RolePreset) => {
     setSelectedRoleId(preset.id);
     setUsername(preset.username);
-    setPassword(''); // Privacy protection: password remains blank
+    setPassword('');
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     const result = await login(username, password);
     if (result.success) {
       router.push('/dashboard');
@@ -315,7 +303,7 @@ export default function LoginPage() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const allPresets = [...mainRoles, ...employeeRoles];
+  const allPresets = mainRolesList;
   const selectedPreset = allPresets.find(p => p.id === selectedRoleId);
 
   return (
@@ -331,12 +319,12 @@ export default function LoginPage() {
             <Boxes className="w-9 h-9" />
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">SupplySense ERP</h1>
-          <p className="text-xs text-slate-400 mt-1">Enterprise Supply Chain & 7-Role Hierarchy Management</p>
+          <p className="text-xs text-slate-400 mt-1">Ai Warehouse & Supply Chain Intelligent</p>
         </div>
 
         {/* Main Card */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-7 shadow-2xl backdrop-blur-xl">
-          
+
           {/* STEP 1: LOGIN CREDENTIALS FORM */}
           {(step === 'LOGIN' || verificationBanner) && (
             <div>
@@ -355,24 +343,33 @@ export default function LoginPage() {
                   </div>
                   <p className="text-[11px] text-emerald-300/80 flex items-center gap-1.5 font-normal">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Sending 6-digit OTP code to your registered email...</span>
+                    <span>Generating 6-digit 2FA verification code...</span>
                   </p>
                 </div>
               )}
 
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Username / Email</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
                   <div className="relative">
-                    <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                    <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-3 z-10 pointer-events-none" />
                     <input
                       type="text"
                       required
+                      list="username-options"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-xs font-medium transition-all"
+                      onChange={(e) => handleUsernameChange(e.target.value)}
+                      style={{ color: '#ffffff', backgroundColor: 'rgba(30, 41, 59, 0.8)', WebkitTextFillColor: '#ffffff', opacity: 1 }}
+                      className="w-full pl-10 pr-4 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-xs font-semibold transition-all"
                       placeholder="Enter username"
                     />
+                    <datalist id="username-options">
+                      {publicUsers.map((u) => (
+                        <option key={u.id} value={u.username}>
+                          {u.full_name ? `${u.full_name} (${u.role})` : u.role}
+                        </option>
+                      ))}
+                    </datalist>
                   </div>
                 </div>
 
@@ -386,13 +383,22 @@ export default function LoginPage() {
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-xs font-medium transition-all"
+                      style={{ color: '#ffffff', backgroundColor: 'rgba(30, 41, 59, 0.8)', WebkitTextFillColor: '#ffffff', opacity: 1 }}
+                      className="w-full pl-10 pr-10 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-xs font-semibold transition-all"
                       placeholder="Enter password"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -411,82 +417,42 @@ export default function LoginPage() {
                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold text-center mb-1">
                   Select Role Preset to Prefill Username
                 </p>
-                
-                {/* Main Manager & Admin Roles */}
+
+                {/* Role Preset Cards */}
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  {mainRoles.map((role) => {
+                  {mainRolesList.map((role, idx) => {
                     const Icon = role.icon;
                     const isSelected = selectedRoleId === role.id;
+                    const isFullWidth = idx === mainRolesList.length - 1 && mainRolesList.length % 2 !== 0;
+
                     return (
                       <button
                         key={role.id}
                         type="button"
                         onClick={() => handleSelectRolePreset(role)}
-                        className={`p-2.5 rounded-xl font-semibold border flex flex-col text-left transition-all cursor-pointer ${
-                          isSelected
+                        className={`p-2.5 rounded-xl font-semibold border flex flex-col text-left transition-all cursor-pointer ${isFullWidth ? 'col-span-2' : ''
+                          } ${isSelected
                             ? `${role.activeBg} ${role.activeRing} ${role.textClass}`
                             : `bg-slate-800/80 hover:bg-slate-800 ${role.borderClass} ${role.textClass}`
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           <Icon className={`w-4 h-4 shrink-0 ${role.textClass}`} />
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold leading-none">{role.title}</p>
-                            <span className="text-[9px] text-slate-400 font-normal">{role.subtitle}</span>
+                            <p className="font-bold leading-none truncate">{role.title}</p>
+                            <span className="text-[9px] text-slate-400 font-normal truncate block">{role.subtitle}</span>
                           </div>
                         </div>
 
                         {isSelected && (
                           <p className="text-[9px] text-amber-400 font-medium mt-1.5 pt-1 border-t border-amber-500/20 leading-tight">
-                            Username Loaded ({role.username}) - Enter Password & Click Sign In
+                            Role Selected ({role.title}) — Enter Password & Click Sign In
                           </p>
                         )}
                       </button>
                     );
                   })}
                 </div>
-
-                {/* Warehouse Employees Sub-Section */}
-                <div className="mt-3 pt-2">
-                  <p className="text-[10px] uppercase tracking-wider text-indigo-400/90 font-bold mb-1.5 flex items-center gap-1">
-                    <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Warehouse Employees (Daily Floor Ops)</span>
-                  </p>
-                  
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {employeeRoles.map((emp) => {
-                      const isSelected = selectedRoleId === emp.id;
-                      return (
-                        <button
-                          key={emp.id}
-                          type="button"
-                          onClick={() => handleSelectRolePreset(emp)}
-                          className={`p-1.5 rounded-lg text-center transition-all cursor-pointer border ${
-                            isSelected
-                              ? 'bg-indigo-500/20 border-indigo-500 ring-2 ring-indigo-500/80 text-indigo-300'
-                              : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 text-indigo-400'
-                          }`}
-                        >
-                          <p className="font-bold text-[10px] leading-tight">Emp {emp.id.replace('emp', '')}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {selectedPreset && selectedPreset.id.startsWith('emp') && (
-                    <div className="mt-2 p-2 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-[10px] font-semibold text-indigo-300 text-center flex items-center justify-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                      <span>Username Loaded ({selectedPreset.username}) - Enter Password & Click Sign In</span>
-                    </div>
-                  )}
-                </div>
-
-                {selectedPreset && !selectedPreset.id.startsWith('emp') && (
-                  <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[10px] font-semibold text-amber-300 text-center flex items-center justify-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Username Loaded ({selectedPreset.username}) - Enter Password & Click Sign In</span>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -508,14 +474,7 @@ export default function LoginPage() {
                 </div>
                 <h2 className="text-xl font-black text-white tracking-tight">Verify Your Identity</h2>
                 <p className="text-xs text-slate-400">
-                  We have sent a 6-digit OTP to
-                </p>
-                <p className="text-xs font-mono font-bold text-blue-400 tracking-wider">
-                  {maskedEmail}
-                </p>
-
-                <p className="text-[11px] text-emerald-400 font-semibold mt-2 flex items-center justify-center gap-1">
-                  <span>📧 Real Email OTP sent to {maskedEmail}. Check your inbox for 2-Step Verification.</span>
+                  Enter your 6-digit 2FA authentication code below to complete sign in.
                 </p>
 
                 {activeDemoOTP && selectedPreset?.id.startsWith('emp') && (
@@ -586,7 +545,7 @@ export default function LoginPage() {
                   <Lock className="w-3 h-3 text-slate-400" />
                   <span>Security Features</span>
                 </p>
-                
+
                 <div className="space-y-1.5 text-slate-300">
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-400 font-bold">✅</span>

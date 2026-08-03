@@ -1,12 +1,14 @@
 export interface User {
   id: string;
   username: string;
-  email: string;
+
   full_name?: string;
-  role: 'Admin' | 'WarehouseManager' | 'InventoryManager' | 'StockManager' | 'PurchaseManager' | 'SalesManager' | 'WarehouseEmployee';
+  role: 'Founder' | 'Admin' | 'WarehouseManager' | 'InventoryManager' | 'StockManager' | 'PurchaseManager' | 'SalesManager' | 'WarehouseEmployee' | 'Supplier';
   assigned_warehouse_id?: string | null;
   assigned_warehouse_name?: string;
   is_active: boolean;
+  is_temporary_admin?: boolean;
+  admin_expires_at?: string | null;
   created_at?: string;
 }
 
@@ -22,6 +24,13 @@ export interface LoginAuditLog {
   session_active: boolean;
 }
 
+export interface WarehouseStaffMember {
+  id: string;
+  username: string;
+  full_name?: string;
+
+}
+
 export interface Warehouse {
   id: string;
   name: string;
@@ -35,6 +44,15 @@ export interface Warehouse {
   contact_number?: string;
   status: 'Active' | 'Maintenance' | 'Inactive';
   created_at?: string;
+  assigned_managers?: {
+    WarehouseManager?: WarehouseStaffMember | null;
+    SalesManager?: WarehouseStaffMember | null;
+    StockManager?: WarehouseStaffMember | null;
+    InventoryManager?: WarehouseStaffMember | null;
+    PurchaseManager?: WarehouseStaffMember | null;
+  };
+  employees?: WarehouseStaffMember[];
+  employee_count?: number;
 }
 
 export interface Category {
@@ -50,7 +68,7 @@ export interface Supplier {
   name: string;
   code: string;
   contact_person?: string;
-  email?: string;
+
   phone?: string;
   address?: string;
   lead_time_days: number;
@@ -125,7 +143,7 @@ export interface PurchaseOrder {
   warehouse_name?: string;
   items: POItem[];
   total_amount: number;
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'RECEIVED' | 'CANCELLED';
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'RECEIVED' | 'CANCELLED' | 'PACKED' | 'DISPATCHED' | 'DELIVERED';
   created_by_id: string;
   approved_by_id?: string | null;
   created_at?: string;
@@ -152,6 +170,8 @@ export interface Sale {
   recorded_by_id: string;
   created_at?: string;
 }
+
+export type SalesInvoice = Sale;
 
 export interface NotificationItem {
   id: string;

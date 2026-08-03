@@ -3,22 +3,27 @@ from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from api.permissions import IsAuthenticatedUser, IsAdminUserRole
+from api.permissions import CanAccessSales
 from api.models import Sale, SaleItem, Product, Stock, StockMovement, Warehouse, Notification
 from api.services.pdf_generator import PDFGenerator
 
 class SalesListCreateView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanAccessSales]
 
     def get(self, request):
         user = request.user
-        if user.role == 'Admin':
-            sales = Sale.objects().order_by('-created_at')
+        role = getattr(user, 'role', None)
+
+        req_wh_id = request.query_params.get('warehouse_id')
+        if role in ['Founder', 'Admin']:
+            assigned_wh_id = req_wh_id if (req_wh_id and req_wh_id != 'ALL') else None
         else:
-            if user.assigned_warehouse_id:
-                sales = Sale.objects(warehouse_id=str(user.assigned_warehouse_id)).order_by('-created_at')
-            else:
-                sales = Sale.objects().order_by('-created_at')
+            assigned_wh_id = str(user.assigned_warehouse_id) if getattr(user, 'assigned_warehouse_id', None) else None
+
+        if assigned_wh_id:
+            sales = Sale.objects(warehouse_id=assigned_wh_id).order_by('-created_at')
+        else:
+            sales = Sale.objects().order_by('-created_at')
 
         data = []
         for s in sales:
@@ -31,6 +36,7 @@ class SalesListCreateView(APIView):
 
     def post(self, request):
         user = request.user
+        role = getattr(user, 'role', None)
         warehouse_id = request.data.get('warehouse_id')
         customer_name = request.data.get('customer_name', 'Walk-in Customer')
         raw_items = request.data.get('items', [])
@@ -38,10 +44,9 @@ class SalesListCreateView(APIView):
         if not warehouse_id or not raw_items:
             return Response({'error': 'Warehouse and items list required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if user.role != 'Admin' and str(user.assigned_warehouse_id) != str(warehouse_id):
+        if role not in ['Founder', 'Admin', 'SalesManager'] and str(user.assigned_warehouse_id) != str(warehouse_id):
             return Response({'error': 'You can only record sales for your assigned warehouse'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Validate stock availability for all items
         sale_items = []
         total_amount = 0.0
         stocks_to_update = []
@@ -70,7 +75,6 @@ class SalesListCreateView(APIView):
             ))
             stocks_to_update.append((stock, qty, prod))
 
-        # Execute stock deductions & log movements
         inv_num = f"INV-{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
         for stock, qty, prod in stocks_to_update:
             stock.quantity -= qty
@@ -87,7 +91,6 @@ class SalesListCreateView(APIView):
                 performed_by_id=user.id
             ).save()
 
-            # Low stock alert check
             if stock.quantity <= prod.min_stock_level:
                 Notification(
                     warehouse_id=warehouse_id,
@@ -111,7 +114,7 @@ class SalesListCreateView(APIView):
 
 
 class InvoicePDFDownloadView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanAccessSales]
 
     def get(self, request, pk):
         sale = Sale.objects(id=pk).first()

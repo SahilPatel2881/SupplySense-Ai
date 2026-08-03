@@ -6,16 +6,18 @@ class User(me.Document):
     meta = {'collection': 'users', 'indexes': ['username', 'email', 'role']}
     
     username = me.StringField(required=True, unique=True, max_length=50)
-    email = me.EmailField(required=False, default="")
+    email = me.StringField(default="")
     password_hash = me.StringField(required=True)
     full_name = me.StringField(max_length=100)
     role = me.StringField(
         required=True,
-        choices=['Admin', 'WarehouseManager', 'InventoryManager', 'StockManager', 'PurchaseManager', 'SalesManager', 'WarehouseEmployee'],
+        choices=['Founder', 'Admin', 'WarehouseManager', 'InventoryManager', 'StockManager', 'PurchaseManager', 'SalesManager', 'WarehouseEmployee', 'Supplier'],
         default='WarehouseManager'
     )
     assigned_warehouse_id = me.StringField(default=None) # MongoDB ObjectId string or None
     is_active = me.BooleanField(default=True)
+    is_temporary_admin = me.BooleanField(default=False)
+    admin_expires_at = me.DateTimeField(default=None)
     created_at = me.DateTimeField(default=datetime.datetime.utcnow)
     
     # 2FA / OTP Security Fields
@@ -34,11 +36,12 @@ class User(me.Document):
         return {
             "id": str(self.id),
             "username": self.username,
-            "email": self.email,
             "full_name": self.full_name,
             "role": self.role,
             "assigned_warehouse_id": self.assigned_warehouse_id,
             "is_active": self.is_active,
+            "is_temporary_admin": self.is_temporary_admin,
+            "admin_expires_at": self.admin_expires_at.isoformat() if self.admin_expires_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
 
@@ -109,7 +112,6 @@ class Supplier(me.Document):
             "name": self.name,
             "code": self.code,
             "contact_person": self.contact_person,
-            "email": self.email,
             "phone": self.phone,
             "address": self.address,
             "lead_time_days": self.lead_time_days,
@@ -342,4 +344,26 @@ class LoginAuditLog(me.Document):
             "browser": self.browser,
             "status": self.status,
             "session_active": self.session_active
+        }
+
+
+class MarketPrice(me.Document):
+    meta = {'collection': 'market_prices', 'indexes': ['commodity_name', 'scraped_at']}
+    
+    commodity_name = me.StringField(required=True, max_length=100) # e.g., Steel Price, Fuel Price, Freight Cost
+    price_val = me.FloatField(required=True)
+    unit = me.StringField(max_length=50, default='₹/unit')
+    source = me.StringField(max_length=200, default='Scraped Market Index')
+    change_pct = me.FloatField(default=0.0)
+    scraped_at = me.DateTimeField(default=datetime.datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "commodity_name": self.commodity_name,
+            "price_val": self.price_val,
+            "unit": self.unit,
+            "source": self.source,
+            "change_pct": self.change_pct,
+            "scraped_at": self.scraped_at.isoformat() if self.scraped_at else None
         }

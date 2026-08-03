@@ -12,6 +12,35 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
+
+  /* Light Theme Inputs */
+  input, select, textarea {
+    color: #0f172a;
+    background-color: #ffffff;
+    -webkit-text-fill-color: #0f172a;
+    opacity: 1;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: #64748b;
+    -webkit-text-fill-color: #64748b;
+    opacity: 1;
+  }
+
+  /* Dark Theme Containers & Inputs */
+  .bg-slate-800 input, .bg-slate-900 input, .bg-slate-950 input,
+  .bg-slate-800 select, .bg-slate-900 select, .bg-slate-950 select,
+  input.text-white, select.text-white, textarea.text-white {
+    color: #ffffff !important;
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  .bg-slate-800 input::placeholder, .bg-slate-900 input::placeholder, .bg-slate-950 input::placeholder,
+  input.text-white::placeholder {
+    color: #94a3b8 !important;
+    -webkit-text-fill-color: #94a3b8 !important;
+  }
 }
 
 /* Glassmorphism & Executive Styling */

@@ -12,29 +12,157 @@ from api.models import (
     PurchaseOrder, POItem, Sale, SaleItem
 )
 
+def seed_warehouse_staff(wh):
+    """
+    Guarantees every warehouse has 1-1 of each of the 5 manager roles:
+    (WarehouseManager, SalesManager, StockManager, InventoryManager, PurchaseManager)
+    and between 2 to 5 WarehouseEmployee users.
+    """
+    wh_id_str = str(wh.id)
+    code_raw = wh.code.replace('WH-', '').replace('-', '_').lower()
+    if not code_raw or len(code_raw) < 2:
+        code_raw = wh.name.replace(' ', '_').lower()[:10]
+    
+    clean_name = wh.name.split(' ')[0]
+
+    # Special case mapping for primary warehouse (WH-MUM-01)
+    if wh.code == 'WH-MUM-01':
+        primary_managers = [
+            ("Krish", "Krish Patel", "WarehouseManager", "krish123"),
+            ("Priya", "Priya Nair", "SalesManager", "priya123"),
+            ("Shreya", "Shreya Patel", "StockManager", "shreya123"),
+            ("Dhyan", "Dhyan Patel", "InventoryManager", "dhyan123"),
+            ("Aarav", "Aarav Sharma", "PurchaseManager", "aarav123"),
+        ]
+        for uname, fname, role, pwd in primary_managers:
+            u = User.objects(username=uname).first()
+            if not u:
+                u = User(username=uname, full_name=fname, role=role, is_active=True)
+            u.role = role
+            u.assigned_warehouse_id = wh_id_str
+            u.is_active = True
+            u.set_password(pwd)
+            u.save()
+            if role == 'WarehouseManager':
+                wh.manager_id = str(u.id)
+                wh.save()
+
+        # 3 employees for WH-MUM-01
+        for i in range(1, 4):
+            emp_uname = f"employee{i}"
+            emp_u = User.objects(username=emp_uname).first()
+            if not emp_u:
+                emp_u = User(username=emp_uname, full_name=f"Mumbai Warehouse Employee {i}", role="WarehouseEmployee", is_active=True)
+            emp_u.role = "WarehouseEmployee"
+            emp_u.assigned_warehouse_id = wh_id_str
+            emp_u.is_active = True
+            emp_u.set_password(emp_uname)
+            emp_u.save()
+        return
+
+    # Manager roles mapping for all other warehouses
+    manager_roles_info = [
+        ("WarehouseManager", "Warehouse Manager", f"{code_raw}_wm", f"{clean_name} Warehouse Manager", f"{code_raw}_wm123"),
+        ("SalesManager", "Sales Manager", f"{code_raw}_sm", f"{clean_name} Sales Manager", f"{code_raw}_sm123"),
+        ("StockManager", "Stock Manager", f"{code_raw}_stm", f"{clean_name} Stock Manager", f"{code_raw}_stm123"),
+        ("InventoryManager", "Inventory Manager", f"{code_raw}_im", f"{clean_name} Inventory Manager", f"{code_raw}_im123"),
+        ("PurchaseManager", "Purchase Manager", f"{code_raw}_pm", f"{clean_name} Purchase Manager", f"{code_raw}_pm123"),
+    ]
+
+    for role, role_title, uname, fname, pwd in manager_roles_info:
+        u = User.objects(assigned_warehouse_id=wh_id_str, role=role).first()
+        if not u:
+            u = User.objects(username=uname).first()
+            if not u:
+                u = User(
+                    username=uname,
+                    full_name=fname,
+                    role=role,
+                    assigned_warehouse_id=wh_id_str,
+                    is_active=True
+                )
+                u.set_password(pwd)
+            else:
+                u.assigned_warehouse_id = wh_id_str
+                u.role = role
+                u.is_active = True
+            u.save()
+
+        if role == 'WarehouseManager' and (not wh.manager_id or wh.manager_id != str(u.id)):
+            wh.manager_id = str(u.id)
+            wh.save()
+
+    # Employees provisioning (2 to 5 employees per warehouse)
+    existing_employees = list(User.objects(assigned_warehouse_id=wh_id_str, role="WarehouseEmployee"))
+    desired_emp_count = 3
+    if wh.code in ['WH-BLR-02', 'WH-MAA-05']:
+        desired_emp_count = 4
+    elif wh.code in ['WH-DEL-03', 'WH-AMD-04']:
+        desired_emp_count = 5
+
+    if len(existing_employees) < 2:
+        for i in range(1, desired_emp_count + 1):
+            emp_uname = f"{code_raw}_emp{i}"
+            emp_fname = f"{clean_name} Warehouse Employee {i}"
+            emp_pwd = f"{code_raw}_emp123"
+            
+            u = User.objects(username=emp_uname).first()
+            if not u:
+                u = User(
+                    username=emp_uname,
+                    full_name=emp_fname,
+                    role="WarehouseEmployee",
+                    assigned_warehouse_id=wh_id_str,
+                    is_active=True
+                )
+                u.set_password(emp_pwd)
+            else:
+                u.assigned_warehouse_id = wh_id_str
+                u.role = "WarehouseEmployee"
+                u.is_active = True
+            u.save()
+
 def run_seed():
     print("[*] Starting Ultra-Fast MongoDB Bulk Data Seeding...")
 
-    # 1. Ensure Default Admin User exists
+
+    # 1. Ensure Multi-Tier Hierarchy Users exist
+    default_users_data = [
+        ("Sahil Patel", "Sahil Patel (Founder)", "Founder", "Sah@2007"),
+        ("Krish", "Krish Patel", "WarehouseManager", "krish123"),
+        ("Dhyan", "Dhyan Patel", "InventoryManager", "dhyan123"),
+        ("Shreya", "Shreya Patel", "StockManager", "shreya123"),
+        ("Aarav", "Aarav Sharma", "PurchaseManager", "aarav123"),
+        ("Priya", "Priya Nair", "SalesManager", "priya123"),
+        ("employee1", "Warehouse Employee 1", "WarehouseEmployee", "employee1"),
+        ("employee2", "Warehouse Employee 2", "WarehouseEmployee", "employee2"),
+        ("employee3", "Warehouse Employee 3", "WarehouseEmployee", "employee3"),
+        ("employee4", "Warehouse Employee 4", "WarehouseEmployee", "employee4"),
+        ("employee5", "Warehouse Employee 5", "WarehouseEmployee", "employee5"),
+    ]
+
+    # Clean up any legacy obsolete roles
+    User.objects(role__in=['OperationsHead', 'DeliveryManager']).delete()
+
+    for uname, fname, role, pwd in default_users_data:
+        u = User.objects(username=uname).first()
+        if not u:
+            u = User(username=uname, full_name=fname, role=role, is_active=True)
+        u.role = role
+        u.is_active = True
+        u.set_password(pwd)
+        u.save()
+
     admin_user = User.objects(username="Sahil Patel").first()
-    if not admin_user:
-        admin_user = User(
-            username="Sahil Patel",
-            email="sahil@supplysense.com",
-            full_name="Sahil Patel",
-            role="Admin"
-        )
-        admin_user.set_password("Sah@2007")
-        admin_user.save()
 
     # 2. Warehouses (6 Facilities)
     warehouses_data = [
-        {"name": "Central Mumbai Fulfillment Hub", "code": "WH-MUM-01", "location": "Bhiwandi, Mumbai, MH", "capacity": 50000, "contact": "+91 98200 11223"},
-        {"name": "Bengaluru Tech Park Depot", "code": "WH-BLR-02", "location": "Peenya Industrial Area, Bengaluru, KA", "capacity": 40000, "contact": "+91 98450 33445"},
-        {"name": "Delhi NCR Logistics Center", "code": "WH-DEL-03", "location": "Gurgaon Logistics Zone, Delhi NCR", "capacity": 60000, "contact": "+91 98110 55667"},
-        {"name": "Ahmedabad Industrial Gateway", "code": "WH-AMD-04", "location": "Sanand GIDC, Ahmedabad, GJ", "capacity": 35000, "contact": "+91 98790 77889"},
-        {"name": "Chennai Port Distribution Hub", "code": "WH-MAA-05", "location": "Ennore Port SEZ, Chennai, TN", "capacity": 45000, "contact": "+91 98400 99001"},
-        {"name": "Kolkata Eastern Regional Depot", "code": "WH-CCU-06", "location": "Dankuni Industrial Park, Kolkata, WB", "capacity": 30000, "contact": "+91 98300 22334"}
+        {"name": "Central Mumbai Fulfillment Hub", "code": "WH-MUM-01", "location": "Bhiwandi, Mumbai, MH", "capacity": 80000, "contact": "+91 98200 11223"},
+        {"name": "Bengaluru Tech Park Depot", "code": "WH-BLR-02", "location": "Peenya Industrial Area, Bengaluru, KA", "capacity": 80000, "contact": "+91 98450 33445"},
+        {"name": "Delhi NCR Logistics Center", "code": "WH-DEL-03", "location": "Gurgaon Logistics Zone, Delhi NCR", "capacity": 80000, "contact": "+91 98110 55667"},
+        {"name": "Ahmedabad Industrial Gateway", "code": "WH-AMD-04", "location": "Sanand GIDC, Ahmedabad, GJ", "capacity": 80000, "contact": "+91 98790 77889"},
+        {"name": "Chennai Port Distribution Hub", "code": "WH-MAA-05", "location": "Ennore Port SEZ, Chennai, TN", "capacity": 80000, "contact": "+91 98400 99001"},
+        {"name": "Kolkata Eastern Regional Depot", "code": "WH-CCU-06", "location": "Dankuni Industrial Park, Kolkata, WB", "capacity": 80000, "contact": "+91 98300 22334"}
     ]
 
     warehouses = []
@@ -47,7 +175,17 @@ def run_seed():
                 status="Active", manager_id=str(admin_user.id)
             )
             wh.save()
+        else:
+            wh.capacity = w["capacity"]
+            wh.save()
         warehouses.append(wh)
+
+    # Assign primary warehouse to default staff and ensure 1-1 managers and 2-5 employees per warehouse
+    for wh in Warehouse.objects():
+        seed_warehouse_staff(wh)
+
+    warehouses = list(Warehouse.objects())
+
 
     # 3. Categories (10 Categories)
     categories_data = [
@@ -93,7 +231,7 @@ def run_seed():
         if not sup:
             sup = Supplier(
                 name=s["name"], code=s["code"], contact_person=s["contact"],
-                email=s["email"], phone=s["phone"], address="Industrial Estate, Phase II, India",
+                phone=s["phone"], address="Industrial Estate, Phase II, India",
                 lead_time_days=s["lead_time"], defect_rate=s["defect"],
                 fulfillment_rate=s["fulfillment"], reliability_score=s["score"],
                 status="Active"

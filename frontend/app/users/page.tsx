@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../lib/api';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
+import { TableSkeleton } from '../../components/SkeletonLoader';
 import { useAuth } from '../../context/AuthContext';
 import { User, Warehouse, LoginAuditLog } from '../../types';
 import {
@@ -19,11 +20,16 @@ import {
   Search,
   RefreshCw,
   Activity,
-  UserCheck
+  UserCheck,
+  Trash2,
+  Power,
+  KeyRound,
+  X
 } from 'lucide-react';
 
 export default function UsersPage() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const isFounderOrAdmin = ['Founder', 'Admin'].includes(user?.role || '');
   const [activeTab, setActiveTab] = useState<'USERS' | 'AUDIT_LOGS'>('USERS');
 
   // Users State
@@ -31,6 +37,11 @@ export default function UsersPage() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Reset Password Modal State
+  const [selectedResetUser, setSelectedResetUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState<LoginAuditLog[]>([]);
@@ -40,11 +51,12 @@ export default function UsersPage() {
 
   const [formData, setFormData] = useState({
     username: '',
-    email: '',
     password: '',
     full_name: '',
     role: 'WarehouseManager',
-    assigned_warehouse_id: ''
+    assigned_warehouse_id: '',
+    is_temporary_admin: false,
+    temp_admin_duration_hours: 24
   });
 
   useEffect(() => {
@@ -100,17 +112,72 @@ export default function UsersPage() {
     }
   };
 
+  const handleToggleStatus = async (user: User) => {
+    try {
+      await api.put(`/users/${user.id}/`, { is_active: !user.is_active });
+      fetchUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to update user status');
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedResetUser) return;
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match. Please re-enter.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+
+    try {
+      await api.put(`/users/${selectedResetUser.id}/`, { new_password: newPassword });
+      alert(`Successfully reset password for user @${selectedResetUser.username}`);
+      setSelectedResetUser(null);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to reset password');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, username: string) => {
+    if (!confirm(`Are you sure you want to permanently delete user "${username}" from the database? This user will be completely removed and cannot log in.`)) {
+      return;
+    }
+    try {
+      await api.delete(`/users/${userId}/`);
+      fetchUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to delete user');
+    }
+  };
+
   const formatDate = (isoString?: string | null) => {
     if (!isoString) return 'N/A';
-    const date = new Date(isoString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    let formattedStr = String(isoString);
+    if (!formattedStr.endsWith('Z') && !formattedStr.includes('+') && !formattedStr.includes('-')) {
+      formattedStr += 'Z';
+    }
+    try {
+      const date = new Date(formattedStr);
+      if (isNaN(date.getTime())) return String(isoString);
+      return date.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+    } catch {
+      return String(isoString);
+    }
   };
 
   const filteredAuditLogs = auditLogs.filter((log) => {
@@ -198,7 +265,12 @@ export default function UsersPage() {
             </div>
           </div>
 
-          {/* TAB 1: USERS LIST & MANAGEMENT */}
+          {/* User Credentials & Audit Logs or Skeleton */}
+          {loading ? (
+            <TableSkeleton rows={8} cols={6} />
+          ) : (
+            <>
+              {/* TAB 1: USERS LIST & MANAGEMENT */}
           {activeTab === 'USERS' && (
             <div className="space-y-4">
               <div className="flex justify-end">
@@ -215,10 +287,10 @@ export default function UsersPage() {
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
                       <th className="p-4">User Details</th>
-                      <th className="p-4">Email</th>
                       <th className="p-4">System Role</th>
                       <th className="p-4">Assigned Warehouse</th>
                       <th className="p-4">Account Status</th>
+                      <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
@@ -228,20 +300,67 @@ export default function UsersPage() {
                           <div>{u.full_name || u.username}</div>
                           <span className="text-[10px] text-slate-400 font-mono">@{u.username}</span>
                         </td>
-                        <td className="p-4">{u.email}</td>
                         <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                            u.role === 'Admin' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                            u.role.includes('Manager') ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          }`}>
-                            {u.role}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border inline-block w-fit ${
+                              u.is_temporary_admin ? 'bg-purple-100 text-purple-800 border-purple-300 font-extrabold' :
+                              u.role === 'Founder' ? 'bg-amber-100 text-amber-900 border-amber-300 font-extrabold' :
+                              u.role === 'Admin' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                              u.role.includes('Manager') ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}>
+                              {u.is_temporary_admin ? '⚡ TEMP ADMIN' : u.role === 'Founder' ? '👑 Founder' : u.role}
+                            </span>
+                            {u.is_temporary_admin && u.admin_expires_at && (
+                              <span className="text-[9px] text-purple-600 font-mono font-semibold">
+                                Exp: {formatDate(u.admin_expires_at)}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-4 font-medium">{u.assigned_warehouse_name || 'System Wide'}</td>
                         <td className="p-4">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${u.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
                             {u.is_active ? 'ACTIVE' : 'INACTIVE'}
                           </span>
+                        </td>
+                        <td className="p-4 text-right space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedResetUser(u);
+                              setNewPassword('');
+                              setConfirmPassword('');
+                            }}
+                            title="Reset User Password"
+                            className="p-1.5 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 rounded-lg font-bold text-[10px] transition-all cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <KeyRound className="w-3.5 h-3.5" />
+                            <span>Reset Pwd</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(u)}
+                            title={u.is_active ? 'Deactivate User Account' : 'Activate User Account'}
+                            className={`p-1.5 rounded-lg border font-bold text-[10px] transition-all cursor-pointer inline-flex items-center gap-1 ${
+                              u.is_active
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                            }`}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                            <span>{u.is_active ? 'Deactivate' : 'Activate'}</span>
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(u.id, u.username)}
+                            title="Delete User Permanently from MongoDB"
+                            className="p-1.5 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-lg font-bold text-[10px] transition-all cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -440,6 +559,8 @@ export default function UsersPage() {
               </div>
             </div>
           )}
+        </>
+      )}
 
           {/* Add User Modal */}
           {showAddModal && (
@@ -456,7 +577,7 @@ export default function UsersPage() {
                         required
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        className="w-full p-2 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono"
+                        className="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-blue-500 font-mono font-bold text-slate-900 bg-white"
                       />
                     </div>
                     <div>
@@ -466,7 +587,7 @@ export default function UsersPage() {
                         required
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full p-2 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"
+                        className="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-blue-500 font-bold text-slate-900 bg-white"
                       />
                     </div>
                   </div>
@@ -478,18 +599,7 @@ export default function UsersPage() {
                       required
                       value={formData.full_name}
                       onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"
+                      className="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-blue-500 font-bold text-slate-900 bg-white"
                     />
                   </div>
 
@@ -499,15 +609,17 @@ export default function UsersPage() {
                       <select
                         value={formData.role}
                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                        className="w-full p-2 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-bold"
+                        className="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-blue-500 font-bold text-slate-900 bg-white"
                       >
-                        <option value="WarehouseManager">Warehouse Manager</option>
-                        <option value="Admin">Admin</option>
-                        <option value="InventoryManager">Inventory Manager</option>
-                        <option value="StockManager">Stock Manager</option>
-                        <option value="PurchaseManager">Purchase Manager</option>
-                        <option value="SalesManager">Sales Manager</option>
-                        <option value="WarehouseEmployee">Warehouse Employee</option>
+                        <option value="WarehouseManager">🏭 Warehouse Manager</option>
+                        <option value="Founder">👑 Founder / Super Admin</option>
+                        <option value="OperationsHead">🏢 Operations Head</option>
+                        <option value="Admin">🔑 Admin</option>
+                        <option value="InventoryManager">📦 Inventory Manager</option>
+                        <option value="StockManager">📊 Stock Manager</option>
+                        <option value="PurchaseManager">🚚 Purchase Manager</option>
+                        <option value="SalesManager">💰 Sales Manager</option>
+                        <option value="WarehouseEmployee">👷 Warehouse Employee</option>
                       </select>
                     </div>
                     <div>
@@ -515,7 +627,7 @@ export default function UsersPage() {
                       <select
                         value={formData.assigned_warehouse_id}
                         onChange={(e) => setFormData({ ...formData, assigned_warehouse_id: e.target.value })}
-                        className="w-full p-2 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"
+                        className="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-blue-500 font-semibold text-slate-900 bg-white"
                       >
                         <option value="">System Wide (All)</option>
                         {warehouses.map(w => (
@@ -523,6 +635,42 @@ export default function UsersPage() {
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  {/* Temporary Admin Option */}
+                  <div className="p-3.5 bg-purple-50 rounded-2xl border border-purple-200 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-extrabold text-purple-950 flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.is_temporary_admin}
+                          onChange={(e) => setFormData({ 
+                            ...formData, 
+                            is_temporary_admin: e.target.checked, 
+                            role: e.target.checked ? 'Admin' : formData.role 
+                          })}
+                          className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span>Grant Temporary Admin Privileges</span>
+                      </label>
+                      <span className="text-[10px] bg-purple-200 text-purple-900 font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Time-Gated</span>
+                    </div>
+
+                    {formData.is_temporary_admin && (
+                      <div className="pt-2 border-t border-purple-200/80 flex items-center justify-between text-xs">
+                        <span className="text-purple-900 font-bold">Expiration Duration:</span>
+                        <select
+                          value={formData.temp_admin_duration_hours}
+                          onChange={(e) => setFormData({ ...formData, temp_admin_duration_hours: Number(e.target.value) })}
+                          className="p-1.5 bg-white border border-purple-300 rounded-xl text-purple-900 font-extrabold text-xs focus:outline-none focus:border-purple-500"
+                        >
+                          <option value={1}>1 Hour Access</option>
+                          <option value={6}>6 Hours Access</option>
+                          <option value={24}>24 Hours Access (1 Day)</option>
+                          <option value={168}>168 Hours Access (7 Days)</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
@@ -538,6 +686,70 @@ export default function UsersPage() {
                       className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 shadow-md shadow-blue-600/20 cursor-pointer"
                     >
                       Create User
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Reset Password Modal */}
+          {selectedResetUser && (
+            <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+              <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                      <KeyRound className="w-5 h-5 text-blue-600" /> Reset Password
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">User: @{selectedResetUser.username} ({selectedResetUser.full_name || 'No Name'})</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedResetUser(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleResetPasswordSubmit} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">New Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Enter new password (min 6 chars)"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Confirm New Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Re-enter new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedResetUser(null)}
+                      className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 shadow-md shadow-blue-600/20 cursor-pointer"
+                    >
+                      Reset Password
                     </button>
                   </div>
                 </form>

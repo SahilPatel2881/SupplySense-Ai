@@ -309,13 +309,13 @@ class ResendOTPView(APIView):
         user.otp_attempts = 0
         user.save()
 
-        # Send actual Email OTP
-        send_otp_email(user.email, otp, user.username)
+        # Send Email OTP if email exists
+        if user.email:
+            send_otp_email(user.email, otp, user.username)
 
         return Response({
-            'message': 'New OTP generated and sent to email successfully.',
+            'message': 'New OTP generated successfully.',
             'username': user.username,
-            'masked_email': mask_email(user.email),
             'demo_otp': otp
         }, status=status.HTTP_200_OK)
 
@@ -382,3 +382,20 @@ class ProfileView(APIView):
                 warehouse_name = wh.name
         user_dict['assigned_warehouse_name'] = warehouse_name
         return Response(user_dict, status=status.HTTP_200_OK)
+
+
+class PublicUserListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        users = User.objects(is_active=True)
+        data = [
+            {
+                "id": str(u.id),
+                "username": u.username,
+                "full_name": u.full_name or u.username,
+                "role": u.role,
+            }
+            for u in users
+        ]
+        return Response(data, status=status.HTTP_200_OK)

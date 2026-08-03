@@ -2,14 +2,15 @@ import datetime
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from api.permissions import IsAuthenticatedUser, IsAdminUserRole
+from api.permissions import CanAccessInventory, CanStockIn, CanStockOutOrTransfer
 from api.models import Stock, StockMovement, Product, Warehouse, Notification
 
 class StockInView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanStockIn]
 
     def post(self, request):
         user = request.user
+        role = getattr(user, 'role', None)
         product_id = request.data.get('product_id')
         warehouse_id = request.data.get('warehouse_id')
         quantity = int(request.data.get('quantity', 0))
@@ -19,8 +20,16 @@ class StockInView(APIView):
         if not product_id or not warehouse_id or quantity <= 0:
             return Response({'error': 'Valid product_id, warehouse_id and quantity (> 0) required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if user.role != 'Admin' and str(user.assigned_warehouse_id) != str(warehouse_id):
+        if role not in ['Founder', 'Admin', 'InventoryManager'] and str(user.assigned_warehouse_id) != str(warehouse_id):
             return Response({'error': 'You can only manage stock in your assigned warehouse'}, status=status.HTTP_403_FORBIDDEN)
+
+        wh = Warehouse.objects(id=warehouse_id).first()
+        if wh:
+            current_wh_stock = sum(s.quantity for s in Stock.objects(warehouse_id=warehouse_id))
+            if current_wh_stock + quantity > wh.capacity:
+                return Response({
+                    'error': f'Operation blocked: Stock-in of {quantity} units exceeds warehouse capacity limit ({wh.capacity} units). Current stock: {current_wh_stock} units.'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         stock = Stock.objects(product_id=product_id, warehouse_id=warehouse_id).first()
         if not stock:
@@ -46,10 +55,11 @@ class StockInView(APIView):
 
 
 class StockOutView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanStockOutOrTransfer]
 
     def post(self, request):
         user = request.user
+        role = getattr(user, 'role', None)
         product_id = request.data.get('product_id')
         warehouse_id = request.data.get('warehouse_id')
         quantity = int(request.data.get('quantity', 0))
@@ -59,7 +69,7 @@ class StockOutView(APIView):
         if not product_id or not warehouse_id or quantity <= 0:
             return Response({'error': 'Valid product_id, warehouse_id and quantity (> 0) required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if user.role != 'Admin' and str(user.assigned_warehouse_id) != str(warehouse_id):
+        if role not in ['Founder', 'Admin', 'InventoryManager'] and str(user.assigned_warehouse_id) != str(warehouse_id):
             return Response({'error': 'You can only manage stock in your assigned warehouse'}, status=status.HTTP_403_FORBIDDEN)
 
         stock = Stock.objects(product_id=product_id, warehouse_id=warehouse_id).first()
@@ -96,10 +106,11 @@ class StockOutView(APIView):
 
 
 class StockTransferView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanStockOutOrTransfer]
 
     def post(self, request):
         user = request.user
+        role = getattr(user, 'role', None)
         product_id = request.data.get('product_id')
         source_warehouse_id = request.data.get('source_warehouse_id')
         target_warehouse_id = request.data.get('target_warehouse_id')
@@ -112,12 +123,20 @@ class StockTransferView(APIView):
         if source_warehouse_id == target_warehouse_id:
             return Response({'error': 'Source and target warehouses must be different'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if user.role != 'Admin' and str(user.assigned_warehouse_id) != str(source_warehouse_id):
+        if role not in ['Founder', 'Admin', 'InventoryManager'] and str(user.assigned_warehouse_id) != str(source_warehouse_id):
             return Response({'error': 'You can only transfer stock out of your assigned warehouse'}, status=status.HTTP_403_FORBIDDEN)
 
         source_stock = Stock.objects(product_id=product_id, warehouse_id=source_warehouse_id).first()
         if not source_stock or source_stock.quantity < quantity:
             return Response({'error': f'Insufficient stock in source warehouse ({source_stock.quantity if source_stock else 0})'}, status=status.HTTP_400_BAD_REQUEST)
+
+        target_wh = Warehouse.objects(id=target_warehouse_id).first()
+        if target_wh:
+            target_curr_stock = sum(s.quantity for s in Stock.objects(warehouse_id=target_warehouse_id))
+            if target_curr_stock + quantity > target_wh.capacity:
+                return Response({
+                    'error': f'Transfer blocked: Operation exceeds target warehouse capacity limit ({target_wh.capacity} units). Current stock: {target_curr_stock} units.'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         target_stock = Stock.objects(product_id=product_id, warehouse_id=target_warehouse_id).first()
         if not target_stock:
@@ -149,14 +168,15 @@ class StockTransferView(APIView):
 
 
 class StockMovementListView(APIView):
-    permission_classes = [IsAuthenticatedUser]
+    permission_classes = [CanAccessInventory]
 
     def get(self, request):
         user = request.user
+        role = getattr(user, 'role', None)
         movements = StockMovement.objects().order_by('-timestamp')[:100]
         data = []
         for m in movements:
-            if user.role != 'Admin' and user.assigned_warehouse_id:
+            if role not in ['Founder', 'Admin', 'InventoryManager', 'PurchaseManager', 'SalesManager'] and user.assigned_warehouse_id:
                 if str(m.source_warehouse_id) != str(user.assigned_warehouse_id) and str(m.target_warehouse_id) != str(user.assigned_warehouse_id):
                     continue
 
